@@ -7,6 +7,8 @@ import { etiquetas } from './data/etiquetas';
 
 const CartillaApp = () => {
   const [selectedPlan, setSelectedPlan] = useState('');
+  const [selectedPlanDescripcion, setSelectedPlanDescripcion] = useState('');
+  const [planOpen, setPlanOpen] = useState(false);
   const [selectedProvincia, setSelectedProvincia] = useState('');
   const [selectedPartido, setSelectedPartido] = useState('');
   const [selectedLocalidad, setSelectedLocalidad] = useState('');
@@ -94,6 +96,8 @@ const CartillaApp = () => {
 
   const handleClearFilters = () => {
     setSelectedPlan('');
+    setSelectedPlanDescripcion('');
+    setPlanOpen(false);
     setSelectedProvincia('');
     setSelectedPartido('');
     setSelectedLocalidad('');
@@ -118,19 +122,36 @@ const CartillaApp = () => {
         {/* Fila 1: Plan */}
         <div className="cartilla-row">
           <label className="cartilla-label">Plan</label>
-          <select
-            value={selectedPlan}
-            onChange={(e) => setSelectedPlan(e.target.value)}
-            className="cartilla-select"
-          >
-            <option value="">Seleccionar Plan</option>
-            {planes.map(plan => (
-              <option key={plan.nombre} value={plan.nombre}>
-                {plan.nombre}
-                {plan.descripcion}
-              </option>
-            ))}
-          </select>
+          <div className="cartilla-dropdown">
+            <div className="cartilla-input-wrapper">
+              <button
+                onClick={() => setPlanOpen(!planOpen)}
+                className="cartilla-dropdown-button"
+              >
+                {selectedPlan || 'Seleccionar Plan'}
+              </button>
+              {selectedPlan && (
+                <div className="cartilla-selected">✓ {selectedPlanDescripcion}</div>
+              )}
+              {planOpen && (
+                <div className="cartilla-dropdown-menu">
+                  {planes.map((plan) => (
+                    <button
+                      key={plan.nombre}
+                      onClick={() => {
+                        setSelectedPlan(plan.nombre);
+                        setSelectedPlanDescripcion(plan.descripcion);
+                        setPlanOpen(false);
+                      }}
+                      className="cartilla-dropdown-item"
+                    >
+                      {plan.nombre} - {plan.descripcion}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Fila 2: Geolocalización y Ubicación */}
