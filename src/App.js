@@ -26,8 +26,6 @@ const CartillaApp = () => {
   const [partidosDisponibles, setPartidosDisponibles] = useState([]);
   const [localidadesDisponibles, setLocalidadesDisponibles] = useState([]);
 
-
-
   // Búsqueda de seccional con normalización
   const seccionalEncontrada = useMemo(() => {
     const norm = (txt) =>
@@ -91,8 +89,8 @@ const CartillaApp = () => {
     l.toLowerCase().includes(localidadSearch.toLowerCase())
   );
 
-  const filteredPrestaciones = etiquetas.PRESTACION;
-  const filteredDetalles = selectedPrestacion ? etiquetas[selectedPrestacion] : [];
+  const filteredPrestaciones = etiquetas.PRESTACION || [];
+  const filteredDetalles = selectedPrestacion ? etiquetas[selectedPrestacion] || [] : [];
 
   const handleClearFilters = () => {
     setSelectedPlan('');
@@ -127,7 +125,9 @@ const CartillaApp = () => {
           >
             <option value="">Seleccionar Plan</option>
             {planes.map(plan => (
-              <option key={plan} value={plan}>{plan}</option>
+              <option key={plan.nombre} value={plan.nombre}>
+                {plan.nombre}
+              </option>
             ))}
           </select>
         </div>
@@ -273,17 +273,17 @@ const CartillaApp = () => {
             </button>
             {prestacionOpen && (
               <div className="cartilla-dropdown-menu">
-                {filteredPrestaciones.map((prest) => (
+                {Array.isArray(filteredPrestaciones) && filteredPrestaciones.map((prest) => (
                   <button
-                    key={prest}
+                    key={typeof prest === 'object' ? prest.nombre : prest}
                     onClick={() => {
-                      setSelectedPrestacion(prest);
+                      setSelectedPrestacion(typeof prest === 'object' ? prest.nombre : prest);
                       setSelectedDetalle('');
                       setPrestacionOpen(false);
                     }}
                     className="cartilla-dropdown-item"
                   >
-                    {prest}
+                    {typeof prest === 'object' ? prest.nombre : prest}
                   </button>
                 ))}
               </div>
@@ -304,16 +304,16 @@ const CartillaApp = () => {
             </button>
             {detalleOpen && selectedPrestacion && (
               <div className="cartilla-dropdown-menu">
-                {filteredDetalles.map((det) => (
+                {Array.isArray(filteredDetalles) && filteredDetalles.map((det) => (
                   <button
-                    key={det}
+                    key={typeof det === 'object' ? det.nombre : det}
                     onClick={() => {
-                      setSelectedDetalle(det);
+                      setSelectedDetalle(typeof det === 'object' ? det.nombre : det);
                       setDetalleOpen(false);
                     }}
                     className="cartilla-dropdown-item"
                   >
-                    {det}
+                    {typeof det === 'object' ? det.nombre : det}
                   </button>
                 ))}
               </div>
