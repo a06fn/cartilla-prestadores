@@ -28,24 +28,36 @@ const CartillaApp = () => {
   const [partidosDisponibles, setPartidosDisponibles] = useState([]);
   const [localidadesDisponibles, setLocalidadesDisponibles] = useState([]);
 
-  // Búsqueda de seccional con normalización
-  const seccionalEncontrada = useMemo(() => {
-    const norm = (txt) =>
-      (txt || '')
-        .toString()
-        .trim()
-        .toLowerCase()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '');
+  // Búsqueda de seccional con normalización y cascada
+  const norm = (txt) =>
+    (txt || '')
+      .toString()
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
 
-    if (!selectedProvincia || !selectedPartido || !selectedLocalidad) return null;
+  // Paso 1: obtener el código de seccional desde geografia
+  const codigoSeccional = useMemo(() => {
+    if (!selectedProvincia || !selectedPartido || !selectedLocalidad) return '';
 
-    return seccionales.find((item) =>
-      norm(item.PROVINCIA) === norm(selectedProvincia) &&
-      norm(item.PARTIDO) === norm(selectedPartido) &&
-      norm(item.LOCALIDAD) === norm(selectedLocalidad)
-    ) || null;
+    const fila = geografia.find((g) =>
+      norm(g.provincia) === norm(selectedProvincia) &&
+      norm(g.partido) === norm(selectedPartido) &&
+      norm(g.localidad) === norm(selectedLocalidad)
+    );
+
+    return fila ? fila.seccional : '';
   }, [selectedProvincia, selectedPartido, selectedLocalidad]);
+
+  // Paso 2: buscar en seccionales por el campo SECCIONAL
+  const seccionalEncontrada = useMemo(() => {
+    if (!codigoSeccional) return null;
+    const lista = Array.isArray(seccionales) ? seccionales : [];
+    return lista.find((item) => norm(item.SECCIONAL) === norm(codigoSeccional)) || null;
+  }, [codigoSeccional]);
+
+  const ubicacionCompleta = Boolean(selectedProvincia && selectedPartido && selectedLocalidad);
 
   // Obtener provincias únicas
   const provincias = [...new Set(geografia.map(g => g.provincia))].sort();
@@ -261,32 +273,65 @@ const CartillaApp = () => {
             </div>
           </div>
 
-          {/* Tarjeta de Seccional Encontrada - Dentro de Fila 2 */}
-          {seccionalEncontrada && (
-            <div className="cartilla-seccional-card">
-              <h3 className="cartilla-seccional-title">✓ Seccional encontrada</h3>
-              <div className="cartilla-seccional-grid">
-                <div>
-                  <span className="cartilla-seccional-label">Nombre Seccional</span>
-                  <p className="cartilla-seccional-value">{seccionalEncontrada['NOMBRE SECCIONAL']}</p>
-                </div>
-                <div>
-                  <span className="cartilla-seccional-label">Localidad</span>
-                  <p className="cartilla-seccional-value">{seccionalEncontrada.LOCALIDAD}</p>
-                </div>
-                <div>
-                  <span className="cartilla-seccional-label">Seccional</span>
-                  <p className="cartilla-seccional-value">{seccionalEncontrada.SECCIONAL}</p>
-                </div>
-                <div>
-                  <span className="cartilla-seccional-label">Dirección</span>
-                  <p className="cartilla-seccional-value">{seccionalEncontrada.DIRECCION}</p>
-                </div>
-                <div>
-                  <span className="cartilla-seccional-label">Teléfono</span>
-                  <p className="cartilla-seccional-value">{seccionalEncontrada.TELEFONO || 'Sin teléfono informado'}</p>
-                </div>
-              </div>
+          {/* Tarjeta de Seccional - Dentro de Fila 2 */}
+          {ubicacionCompleta && (
+            <div
+              className="cartilla-seccional-card"
+              style={{
+                marginTop: '16px',
+                padding: '16px',
+                border: '1px solid #dbeafe',
+                borderRadius: '8px',
+                background: '#f8fbff'
+              }}
+            >
+              {seccionalEncontrada ? (
+                <>
+                  <h3 className="cartilla-seccional-title" style={{ margin: '0 0 12px' }}>
+                    ✓ {seccionalEncontrada['NOMBRE SECCIONAL'] || 'Seccional encontrada'}
+                  </h3>
+                  <div
+                    className="cartilla-seccional-grid"
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                      gap: '12px'
+                    }}
+                  >
+                    <div>
+                      <span className="cartilla-seccional-label">Nombre Seccional</span>
+                      <p className="cartilla-seccional-value">
+                        {seccionalEncontrada['NOMBRE SECCIONAL'] || '-'}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="cartilla-seccional-label">Localidad</span>
+                      <p className="cartilla-seccional-value">{seccionalEncontrada.LOCALIDAD || '-'}</p>
+                    </div>
+                    <div>
+                      <span className="cartilla-seccional-label">Seccional</span>
+                      <p className="cartilla-seccional-value">{seccionalEncontrada.SECCIONAL || '-'}</p>
+                    </div>
+                    <div>
+                      <span className="cartilla-seccional-label">Dirección</span>
+                      <p className="cartilla-seccional-value">{seccionalEncontrada.DIRECCION || '-'}</p>
+                    </div>
+                    <div>
+                      <span className="cartilla-seccional-label">Teléfono</span>
+                      <p className="cartilla-seccional-value">
+                        {seccionalEncontrada.TELEFONO || 'Sin teléfono informado'}
+                      </p>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p style={{ margin: 0, color: '#b45309' }}>
+                  ⚠ No se encontró la sede para el código de seccional{' '}
+                  <strong>{codigoSeccional || '(sin código en geografía)'}</strong>.
+                  Verificá que exista un registro con ese valor en el campo SECCIONAL de
+                  seccionales.js
+                </p>
+              )}
             </div>
           )}
         </div>
