@@ -127,6 +127,7 @@ const CartillaApp = () => {
             {planes.map(plan => (
               <option key={plan.nombre} value={plan.nombre}>
                 {plan.nombre}
+                {plan.descripcion}
               </option>
             ))}
           </select>
