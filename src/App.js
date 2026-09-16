@@ -41,9 +41,9 @@ const CartillaApp = () => {
     if (!selectedProvincia || !selectedPartido || !selectedLocalidad) return null;
 
     return seccionales.find((item) =>
-      norm(item.provincia) === norm(selectedProvincia) &&
-      norm(item.partido) === norm(selectedPartido) &&
-      norm(item.localidad) === norm(selectedLocalidad)
+      norm(item.PROVINCIA) === norm(selectedProvincia) &&
+      norm(item.PARTIDO) === norm(selectedPartido) &&
+      norm(item.LOCALIDAD) === norm(selectedLocalidad)
     ) || null;
   }, [selectedProvincia, selectedPartido, selectedLocalidad]);
 
@@ -260,28 +260,36 @@ const CartillaApp = () => {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Tarjeta de Seccional Encontrada */}
-        {seccionalEncontrada && (
-          <div className="cartilla-seccional-card">
-            <h3 className="cartilla-seccional-title">✓ Seccional encontrada</h3>
-            <div className="cartilla-seccional-grid">
-              <div>
-                <span className="cartilla-seccional-label">Seccional</span>
-                <p className="cartilla-seccional-value">{seccionalEncontrada.seccional}</p>
-              </div>
-              <div>
-                <span className="cartilla-seccional-label">Dirección</span>
-                <p className="cartilla-seccional-value">{seccionalEncontrada.direccion}</p>
-              </div>
-              <div>
-                <span className="cartilla-seccional-label">Teléfono</span>
-                <p className="cartilla-seccional-value">{seccionalEncontrada.telefono || 'Sin teléfono informado'}</p>
+          {/* Tarjeta de Seccional Encontrada - Dentro de Fila 2 */}
+          {seccionalEncontrada && (
+            <div className="cartilla-seccional-card">
+              <h3 className="cartilla-seccional-title">✓ Seccional encontrada</h3>
+              <div className="cartilla-seccional-grid">
+                <div>
+                  <span className="cartilla-seccional-label">Nombre Seccional</span>
+                  <p className="cartilla-seccional-value">{seccionalEncontrada['NOMBRE SECCIONAL']}</p>
+                </div>
+                <div>
+                  <span className="cartilla-seccional-label">Localidad</span>
+                  <p className="cartilla-seccional-value">{seccionalEncontrada.LOCALIDAD}</p>
+                </div>
+                <div>
+                  <span className="cartilla-seccional-label">Seccional</span>
+                  <p className="cartilla-seccional-value">{seccionalEncontrada.SECCIONAL}</p>
+                </div>
+                <div>
+                  <span className="cartilla-seccional-label">Dirección</span>
+                  <p className="cartilla-seccional-value">{seccionalEncontrada.DIRECCION}</p>
+                </div>
+                <div>
+                  <span className="cartilla-seccional-label">Teléfono</span>
+                  <p className="cartilla-seccional-value">{seccionalEncontrada.TELEFONO || 'Sin teléfono informado'}</p>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Fila 3: Prestación */}
         <div className="cartilla-row">
