@@ -4,6 +4,7 @@ import { planes } from './data/planes';
 import { geografia } from './data/geografia';
 import { seccionales } from './data/seccionales';
 import { etiquetas } from './data/etiquetas';
+import { detectarMiUbicacion } from './utils/geolocalizacion';
 
 const CartillaApp = () => {
   const [selectedPlan, setSelectedPlan] = useState('');
@@ -14,19 +15,23 @@ const CartillaApp = () => {
   const [selectedLocalidad, setSelectedLocalidad] = useState('');
   const [selectedPrestacion, setSelectedPrestacion] = useState('');
   const [selectedDetalle, setSelectedDetalle] = useState('');
-  
+
   const [provinciaSearch, setProvinciaSearch] = useState('');
   const [partidoSearch, setPartidoSearch] = useState('');
   const [localidadSearch, setLocalidadSearch] = useState('');
-  
+
   const [provinciaOpen, setProvinciaOpen] = useState(false);
   const [partidoOpen, setPartidoOpen] = useState(false);
   const [localidadOpen, setLocalidadOpen] = useState(false);
   const [prestacionOpen, setPrestacionOpen] = useState(false);
   const [detalleOpen, setDetalleOpen] = useState(false);
-  
+
   const [partidosDisponibles, setPartidosDisponibles] = useState([]);
   const [localidadesDisponibles, setLocalidadesDisponibles] = useState([]);
+
+  // Estado de la geolocalización
+  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
+  const [avisoUbicacion, setAvisoUbicacion] = useState(null); // { tipo, texto }
 
   // Búsqueda de seccional con normalización y cascada
   const norm = (txt) =>
@@ -65,6 +70,22 @@ const CartillaApp = () => {
     p.toLowerCase().includes(provinciaSearch.toLowerCase())
   );
 
+  /* ---------------- Helpers de cascada reutilizables ---------------- */
+
+  const calcularPartidos = (prov) =>
+    [...new Set(
+      geografia
+        .filter(g => g.provincia === prov)
+        .map(g => g.partido)
+    )].sort();
+
+  const calcularLocalidades = (prov, part) =>
+    [...new Set(
+      geografia
+        .filter(g => g.provincia === prov && g.partido === part)
+        .map(g => g.localidad)
+    )].sort();
+
   // Obtener partidos cuando selecciona provincia
   const handleProvinciaSelect = (prov) => {
     setSelectedProvincia(prov);
@@ -72,13 +93,9 @@ const CartillaApp = () => {
     setProvinciaSearch('');
     setSelectedPartido('');
     setSelectedLocalidad('');
-    const partidos = [...new Set(
-      geografia
-        .filter(g => g.provincia === prov)
-        .map(g => g.partido)
-    )].sort();
-    setPartidosDisponibles(partidos);
+    setPartidosDisponibles(calcularPartidos(prov));
     setLocalidadesDisponibles([]);
+    setAvisoUbicacion(null);
   };
 
   const filteredPartido = partidosDisponibles.filter(p =>
@@ -91,17 +108,80 @@ const CartillaApp = () => {
     setPartidoOpen(false);
     setPartidoSearch('');
     setSelectedLocalidad('');
-    const localidades = [...new Set(
-      geografia
-        .filter(g => g.provincia === selectedProvincia && g.partido === part)
-        .map(g => g.localidad)
-    )].sort();
-    setLocalidadesDisponibles(localidades);
+    setAvisoUbicacion(null);
+    setLocalidadesDisponibles(calcularLocalidades(selectedProvincia, part));
   };
 
   const filteredLocalidad = localidadesDisponibles.filter(l =>
     l.toLowerCase().includes(localidadSearch.toLowerCase())
   );
+
+  /* ---------------- Botón MI UBICACIÓN ---------------- */
+
+  const handleMiUbicacion = async () => {
+    setBuscandoUbicacion(true);
+    setAvisoUbicacion(null);
+
+    try {
+      const r = await detectarMiUbicacion(geografia);
+
+      if (!r.exito) {
+        setAvisoUbicacion({ tipo: 'error', texto: r.motivo });
+        return;
+      }
+
+      // Cerrar cualquier desplegable abierto y limpiar los textos de búsqueda
+      setProvinciaOpen(false);
+      setPartidoOpen(false);
+      setLocalidadOpen(false);
+      setProvinciaSearch('');
+      setPartidoSearch('');
+      setLocalidadSearch('');
+
+      // Setear la cascada completa, incluyendo las listas disponibles
+      // para que los desplegables queden usables al ajustar manualmente.
+      setSelectedProvincia(r.provincia);
+      setPartidosDisponibles(calcularPartidos(r.provincia));
+
+      if (r.partido) {
+        setSelectedPartido(r.partido);
+        setLocalidadesDisponibles(calcularLocalidades(r.provincia, r.partido));
+      } else {
+        setSelectedPartido('');
+        setLocalidadesDisponibles([]);
+      }
+
+      setSelectedLocalidad(r.localidad || '');
+
+      // Mensajes según qué tan lejos llegó la detección
+      if (r.localidad) {
+        setAvisoUbicacion({
+          tipo: 'ok',
+          texto: `Ubicación detectada: ${r.localidad}, ${r.partido} (${r.provincia}).`,
+        });
+      } else if (r.partido) {
+        setAvisoUbicacion({
+          tipo: 'aviso',
+          texto: `Detectamos ${r.partido}, ${r.provincia}. Elegí tu localidad para ver la seccional.`,
+        });
+      } else {
+        setAvisoUbicacion({
+          tipo: 'aviso',
+          texto: `Detectamos ${r.provincia}. Completá partido y localidad para ver la seccional.`,
+        });
+      }
+    } catch (error) {
+      setAvisoUbicacion({ tipo: 'error', texto: error.message });
+    } finally {
+      setBuscandoUbicacion(false);
+    }
+  };
+
+  const estilosAviso = {
+    ok: { background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46' },
+    aviso: { background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' },
+    error: { background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b' },
+  };
 
   const filteredPrestaciones = etiquetas.PRESTACION || [];
   const filteredDetalles = selectedPrestacion ? etiquetas[selectedPrestacion] || [] : [];
@@ -120,6 +200,7 @@ const CartillaApp = () => {
     setProvinciaSearch('');
     setPartidoSearch('');
     setLocalidadSearch('');
+    setAvisoUbicacion(null);
   };
 
   return (
@@ -168,9 +249,29 @@ const CartillaApp = () => {
 
         {/* Fila 2: Geolocalización y Ubicación */}
         <div className="cartilla-row">
-          <button className="cartilla-button-primary">
-            📍 Mi Ubicación
+          <button
+            onClick={handleMiUbicacion}
+            disabled={buscandoUbicacion}
+            className="cartilla-button-primary"
+            style={buscandoUbicacion ? { opacity: 0.7, cursor: 'wait' } : undefined}
+          >
+            {buscandoUbicacion ? '⏳ Buscando ubicación...' : '📍 Mi Ubicación'}
           </button>
+
+          {avisoUbicacion && !selectedLocalidad && (
+            <div
+              style={{
+                marginTop: '10px',
+                marginBottom: '4px',
+                padding: '10px 12px',
+                borderRadius: '6px',
+                fontSize: '14px',
+                ...estilosAviso[avisoUbicacion.tipo],
+              }}
+            >
+              {avisoUbicacion.texto}
+            </div>
+          )}
 
           <div className="cartilla-grid-3">
             {/* Provincia */}
@@ -261,6 +362,7 @@ const CartillaApp = () => {
                           setSelectedLocalidad(loc);
                           setLocalidadOpen(false);
                           setLocalidadSearch('');
+                          setAvisoUbicacion(null);
                         }}
                         className="cartilla-dropdown-item"
                       >
