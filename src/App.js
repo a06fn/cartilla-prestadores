@@ -1,37 +1,40 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import './App.css';
 import { planes } from './data/planes';
 import { geografia } from './data/geografia';
 import { seccionales } from './data/seccionales';
 import { etiquetas } from './data/etiquetas';
 import { detectarMiUbicacion } from './utils/geolocalizacion';
+import { guardias } from './data/guardias'; 
 
 const CartillaApp = () => {
   const [selectedPlan, setSelectedPlan] = useState('');
   const [selectedPlanDescripcion, setSelectedPlanDescripcion] = useState('');
   const [planOpen, setPlanOpen] = useState(false);
+  const [selectedGuardia, setSelectedGuardia] = useState('');
+  const [guardiaOpen, setGuardiaOpen] = useState(false);
   const [selectedProvincia, setSelectedProvincia] = useState('');
   const [selectedPartido, setSelectedPartido] = useState('');
   const [selectedLocalidad, setSelectedLocalidad] = useState('');
   const [selectedPrestacion, setSelectedPrestacion] = useState('');
   const [selectedDetalle, setSelectedDetalle] = useState('');
-
+  
   const [provinciaSearch, setProvinciaSearch] = useState('');
   const [partidoSearch, setPartidoSearch] = useState('');
   const [localidadSearch, setLocalidadSearch] = useState('');
-
+  
   const [provinciaOpen, setProvinciaOpen] = useState(false);
   const [partidoOpen, setPartidoOpen] = useState(false);
   const [localidadOpen, setLocalidadOpen] = useState(false);
   const [prestacionOpen, setPrestacionOpen] = useState(false);
   const [detalleOpen, setDetalleOpen] = useState(false);
-
+  
   const [partidosDisponibles, setPartidosDisponibles] = useState([]);
   const [localidadesDisponibles, setLocalidadesDisponibles] = useState([]);
-
-  // Estado de la geolocalización
-  const [buscandoUbicacion, setBuscandoUbicacion] = useState(false);
-  const [avisoUbicacion, setAvisoUbicacion] = useState(null); // { tipo, texto }
+  
+  const [cargandoUbicacion, setCargandoUbicacion] = useState(false);
+  const [avisoUbicacion, setAvisoUbicacion] = useState('');
+  const containerRef = React.useRef(null);
 
   // Búsqueda de seccional con normalización y cascada
   const norm = (txt) =>
@@ -70,21 +73,22 @@ const CartillaApp = () => {
     p.toLowerCase().includes(provinciaSearch.toLowerCase())
   );
 
-  /* ---------------- Helpers de cascada reutilizables ---------------- */
-
-  const calcularPartidos = (prov) =>
-    [...new Set(
+  // Funciones auxiliares para calcular partidos y localidades
+  const calcularPartidos = (prov) => {
+    return [...new Set(
       geografia
         .filter(g => g.provincia === prov)
         .map(g => g.partido)
     )].sort();
+  };
 
-  const calcularLocalidades = (prov, part) =>
-    [...new Set(
+  const calcularLocalidades = (prov, part) => {
+    return [...new Set(
       geografia
         .filter(g => g.provincia === prov && g.partido === part)
         .map(g => g.localidad)
     )].sort();
+  };
 
   // Obtener partidos cuando selecciona provincia
   const handleProvinciaSelect = (prov) => {
@@ -95,7 +99,7 @@ const CartillaApp = () => {
     setSelectedLocalidad('');
     setPartidosDisponibles(calcularPartidos(prov));
     setLocalidadesDisponibles([]);
-    setAvisoUbicacion(null);
+    setAvisoUbicacion('');
   };
 
   const filteredPartido = partidosDisponibles.filter(p =>
@@ -108,80 +112,13 @@ const CartillaApp = () => {
     setPartidoOpen(false);
     setPartidoSearch('');
     setSelectedLocalidad('');
-    setAvisoUbicacion(null);
     setLocalidadesDisponibles(calcularLocalidades(selectedProvincia, part));
+    setAvisoUbicacion('');
   };
 
   const filteredLocalidad = localidadesDisponibles.filter(l =>
     l.toLowerCase().includes(localidadSearch.toLowerCase())
   );
-
-  /* ---------------- Botón MI UBICACIÓN ---------------- */
-
-  const handleMiUbicacion = async () => {
-    setBuscandoUbicacion(true);
-    setAvisoUbicacion(null);
-
-    try {
-      const r = await detectarMiUbicacion(geografia);
-
-      if (!r.exito) {
-        setAvisoUbicacion({ tipo: 'error', texto: r.motivo });
-        return;
-      }
-
-      // Cerrar cualquier desplegable abierto y limpiar los textos de búsqueda
-      setProvinciaOpen(false);
-      setPartidoOpen(false);
-      setLocalidadOpen(false);
-      setProvinciaSearch('');
-      setPartidoSearch('');
-      setLocalidadSearch('');
-
-      // Setear la cascada completa, incluyendo las listas disponibles
-      // para que los desplegables queden usables al ajustar manualmente.
-      setSelectedProvincia(r.provincia);
-      setPartidosDisponibles(calcularPartidos(r.provincia));
-
-      if (r.partido) {
-        setSelectedPartido(r.partido);
-        setLocalidadesDisponibles(calcularLocalidades(r.provincia, r.partido));
-      } else {
-        setSelectedPartido('');
-        setLocalidadesDisponibles([]);
-      }
-
-      setSelectedLocalidad(r.localidad || '');
-
-      // Mensajes según qué tan lejos llegó la detección
-      if (r.localidad) {
-        setAvisoUbicacion({
-          tipo: 'ok',
-          texto: `Ubicación detectada: ${r.localidad}, ${r.partido} (${r.provincia}).`,
-        });
-      } else if (r.partido) {
-        setAvisoUbicacion({
-          tipo: 'aviso',
-          texto: `Detectamos ${r.partido}, ${r.provincia}. Elegí tu localidad para ver la seccional.`,
-        });
-      } else {
-        setAvisoUbicacion({
-          tipo: 'aviso',
-          texto: `Detectamos ${r.provincia}. Completá partido y localidad para ver la seccional.`,
-        });
-      }
-    } catch (error) {
-      setAvisoUbicacion({ tipo: 'error', texto: error.message });
-    } finally {
-      setBuscandoUbicacion(false);
-    }
-  };
-
-  const estilosAviso = {
-    ok: { background: '#ecfdf5', border: '1px solid #a7f3d0', color: '#065f46' },
-    aviso: { background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e' },
-    error: { background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b' },
-  };
 
   const filteredPrestaciones = etiquetas.PRESTACION || [];
   const filteredDetalles = selectedPrestacion ? etiquetas[selectedPrestacion] || [] : [];
@@ -190,6 +127,8 @@ const CartillaApp = () => {
     setSelectedPlan('');
     setSelectedPlanDescripcion('');
     setPlanOpen(false);
+    setSelectedGuardia('');
+    setGuardiaOpen(false);
     setSelectedProvincia('');
     setSelectedPartido('');
     setSelectedLocalidad('');
@@ -200,16 +139,74 @@ const CartillaApp = () => {
     setProvinciaSearch('');
     setPartidoSearch('');
     setLocalidadSearch('');
-    setAvisoUbicacion(null);
+    setAvisoUbicacion('');
   };
 
+  // Handler para el botón Mi Ubicación
+  const handleMiUbicacion = async () => {
+    setCargandoUbicacion(true);
+    setAvisoUbicacion('');
+    
+    try {
+      const resultado = await detectarMiUbicacion(geografia);
+      
+      if (resultado.exito) {
+        setSelectedProvincia(resultado.provincia);
+        setSelectedPartido(resultado.partido);
+        setSelectedLocalidad(resultado.localidad);
+        setPartidosDisponibles(calcularPartidos(resultado.provincia));
+        setLocalidadesDisponibles(calcularLocalidades(resultado.provincia, resultado.partido));
+      } else {
+        setAvisoUbicacion(resultado.aviso);
+      }
+    } catch (error) {
+      setAvisoUbicacion('Error al detectar ubicación. Intenta manualmente.');
+    } finally {
+      setCargandoUbicacion(false);
+    }
+  };
+
+  // Cerrar dropdowns al clickear fuera
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (containerRef.current && !containerRef.current.contains(e.target)) {
+        setPlanOpen(false);
+        setGuardiaOpen(false);
+        setProvinciaOpen(false);
+        setPartidoOpen(false);
+        setLocalidadOpen(false);
+        setPrestacionOpen(false);
+        setDetalleOpen(false);
+      }
+    };
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setPlanOpen(false);
+        setGuardiaOpen(false);
+        setProvinciaOpen(false);
+        setPartidoOpen(false);
+        setLocalidadOpen(false);
+        setPrestacionOpen(false);
+        setDetalleOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, []);
+
   return (
-    <div className="cartilla-container">
+    <div className="cartilla-container" ref={containerRef}>
       <div className="cartilla-content">
         {/* Header */}
         <div className="cartilla-header">
           <h1>Cartilla de Prestadores</h1>
-          <p>Encuentra los mejores prestadores de salud en tu zona</p>
+          <p>OBRA SOCIAL DEL PERSONAL DE TELEVISION</p>
         </div>
 
         {/* Fila 1: Plan */}
@@ -219,6 +216,7 @@ const CartillaApp = () => {
             <div className="cartilla-input-wrapper">
               <button
                 onClick={() => setPlanOpen(!planOpen)}
+                onBlur={() => setTimeout(() => setPlanOpen(false), 150)}
                 className="cartilla-dropdown-button"
               >
                 {selectedPlan || 'Seleccionar Plan'}
@@ -247,35 +245,12 @@ const CartillaApp = () => {
           </div>
         </div>
 
-        {/* Fila 2: Geolocalización y Ubicación */}
-        <div className="cartilla-row">
-          <button
-            onClick={handleMiUbicacion}
-            disabled={buscandoUbicacion}
-            className="cartilla-button-primary"
-            style={buscandoUbicacion ? { opacity: 0.7, cursor: 'wait' } : undefined}
-          >
-            {buscandoUbicacion ? '⏳ Buscando ubicación...' : '📍 Mi Ubicación'}
-          </button>
-
-          {avisoUbicacion && !selectedLocalidad && (
-            <div
-              style={{
-                marginTop: '10px',
-                marginBottom: '4px',
-                padding: '10px 12px',
-                borderRadius: '6px',
-                fontSize: '14px',
-                ...estilosAviso[avisoUbicacion.tipo],
-              }}
-            >
-              {avisoUbicacion.texto}
-            </div>
-          )}
-
-          <div className="cartilla-grid-3">
+        {/* Fila 2: Geolocalización - LAYOUT VERTICAL */}
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '24px' }}>
+          {/* Sección izquierda: Provincia, Partido, Localidad */}
+          <div style={{ flex: 1 }}>
             {/* Provincia */}
-            <div className="cartilla-dropdown">
+            <div className="cartilla-dropdown" style={{ marginBottom: '16px' }}>
               <label className="cartilla-label">Provincia</label>
               <div className="cartilla-input-wrapper">
                 <input
@@ -284,6 +259,7 @@ const CartillaApp = () => {
                   value={provinciaSearch}
                   onChange={(e) => setProvinciaSearch(e.target.value)}
                   onFocus={() => setProvinciaOpen(true)}
+                  onBlur={() => setTimeout(() => setProvinciaOpen(false), 150)}
                   className="cartilla-input"
                 />
                 {selectedProvincia && (
@@ -306,7 +282,7 @@ const CartillaApp = () => {
             </div>
 
             {/* Partido */}
-            <div className="cartilla-dropdown">
+            <div className="cartilla-dropdown" style={{ marginBottom: '16px' }}>
               <label className="cartilla-label">Partido</label>
               <div className="cartilla-input-wrapper">
                 <input
@@ -315,6 +291,7 @@ const CartillaApp = () => {
                   value={partidoSearch}
                   onChange={(e) => setPartidoSearch(e.target.value)}
                   onFocus={() => selectedProvincia && setPartidoOpen(true)}
+                  onBlur={() => setTimeout(() => setPartidoOpen(false), 150)}
                   disabled={!selectedProvincia}
                   className="cartilla-input"
                 />
@@ -347,6 +324,7 @@ const CartillaApp = () => {
                   value={localidadSearch}
                   onChange={(e) => setLocalidadSearch(e.target.value)}
                   onFocus={() => selectedPartido && setLocalidadOpen(true)}
+                  onBlur={() => setTimeout(() => setLocalidadOpen(false), 150)}
                   disabled={!selectedPartido}
                   className="cartilla-input"
                 />
@@ -362,7 +340,7 @@ const CartillaApp = () => {
                           setSelectedLocalidad(loc);
                           setLocalidadOpen(false);
                           setLocalidadSearch('');
-                          setAvisoUbicacion(null);
+                          setAvisoUbicacion('');
                         }}
                         className="cartilla-dropdown-item"
                       >
@@ -375,80 +353,127 @@ const CartillaApp = () => {
             </div>
           </div>
 
-          {/* Tarjeta de Seccional - Dentro de Fila 2 */}
+          {/* Centro: Botón Mi Ubicación */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button
+              className="cartilla-button-primary"
+              onClick={handleMiUbicacion}
+              disabled={cargandoUbicacion}
+              style={{
+                whiteSpace: 'nowrap',
+                height: 'fit-content',
+                flexShrink: 0
+              }}
+            >
+              {cargandoUbicacion ? '⏳ Detectando...' : '📍 Mi Ubicación'}
+            </button>
+          </div>
+
+          {/* Derecha: Tarjeta de Seccional */}
           {ubicacionCompleta && (
             <div
-              className="cartilla-seccional-card"
               style={{
-                marginTop: '16px',
-                padding: '16px',
-                border: '1px solid #dbeafe',
+                minWidth: '280px',
+                padding: '14px',
+                border: '2px solid #3b82f6',
                 borderRadius: '8px',
-                background: '#f8fbff'
+                background: '#eff6ff',
+                flexShrink: 0
               }}
             >
               {seccionalEncontrada ? (
                 <>
-                  <h3 className="cartilla-seccional-title" style={{ margin: '0 0 12px' }}>
-                    ✓ {seccionalEncontrada['NOMBRE SECCIONAL'] || 'Seccional encontrada'}
-                  </h3>
-                  <div
-                    className="cartilla-seccional-grid"
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                      gap: '12px'
-                    }}
-                  >
-                    <div>
-                      <p>Su Seccional es:</p>
-                      <span className="cartilla-seccional-label">Nombre Seccional</span>
-                      <p className="cartilla-seccional-value">
-                        {seccionalEncontrada['NOMBRE SECCIONAL'] || '-'}
-                      </p>
-                    </div>
-                    <div>
-                      <span className="cartilla-seccional-label">Localidad</span>
-                      <p className="cartilla-seccional-value">{seccionalEncontrada.LOCALIDAD || '-'}</p>
-                    </div>
-                    <div>
-                      <span className="cartilla-seccional-label">Seccional</span>
-                      <p className="cartilla-seccional-value">{seccionalEncontrada.SECCIONAL || '-'}</p>
-                    </div>
-                    <div>
-                      <span className="cartilla-seccional-label">Dirección</span>
-                      <p className="cartilla-seccional-value">{seccionalEncontrada.DIRECCION || '-'}</p>
-                    </div>
-                    <div>
-                      <span className="cartilla-seccional-label">Teléfono</span>
-                      <p className="cartilla-seccional-value">
-                        {seccionalEncontrada.TELEFONO || 'Sin teléfono informado'}
-                      </p>
-                    </div>
+                  <p style={{ margin: '0 0 6px 0', fontSize: '11px', color: '#666', fontWeight: '500' }}>
+                    Su seccional más cercana es:
+                  </p>
+                  <p style={{ margin: '0 0 9px 0', fontSize: '13px', fontWeight: 'bold', color: '#1e40af' }}>
+                    ✓ {seccionalEncontrada['NOMBRE SECCIONAL'] || 'Seccional'}
+                  </p>
+                  <div style={{ fontSize: '11px', lineHeight: '1.5', color: '#333' }}>
+                    <div><span style={{ fontWeight: '600' }}>Localidad:</span> {seccionalEncontrada.LOCALIDAD || '-'}</div>
+                    <div><span style={{ fontWeight: '600' }}>Código:</span> {seccionalEncontrada.SECCIONAL || '-'}</div>
+                    <div><span style={{ fontWeight: '600' }}>Dirección:</span> {seccionalEncontrada.DIRECCION || '-'}</div>
+                    <div><span style={{ fontWeight: '600' }}>Teléfono:</span> {seccionalEncontrada.TELEFONO || 'Sin teléfono'}</div>
                   </div>
                 </>
               ) : (
-                <p style={{ margin: 0, color: '#b45309' }}>
-                  ⚠ No se encontró la sede para el código de seccional{' '}
-                  <strong>{codigoSeccional || '(sin código en geografía)'}</strong>.
-                  Verificá que exista un registro con ese valor en el campo SECCIONAL de
-                  seccionales.js
+                <p style={{ margin: 0, fontSize: '11px', color: '#b45309' }}>
+                  ⚠ No encontrada
                 </p>
               )}
             </div>
           )}
         </div>
 
-        {/* Fila 3: Prestación */}
+        {/* Aviso de ubicación aproximada */}
+        {avisoUbicacion && !selectedLocalidad && (
+          <div style={{
+            padding: '12px',
+            marginBottom: '16px',
+            backgroundColor: '#fef3c7',
+            border: '1px solid #fbbf24',
+            borderRadius: '6px',
+            fontSize: '13px',
+            color: '#92400e'
+          }}>
+            {avisoUbicacion}
+          </div>
+        )}
+
+        {/* Fila 3: GUARDIA - PRIORIDAD MÁXIMA */}
+        <div className="cartilla-row" style={{ backgroundColor: '#fffbeb', borderLeft: '5px solid #00BCD4' }}>
+          <label className="cartilla-label" style={{ color: '#00695C' }}>Guardia</label>
+          <div className="cartilla-input-wrapper">
+            <button
+              onClick={() => setGuardiaOpen(!guardiaOpen)}
+              onBlur={() => setTimeout(() => setGuardiaOpen(false), 150)}
+              className="cartilla-dropdown-button"
+              style={{ borderColor: '#00BCD4' }}
+            >
+              {selectedGuardia || 'Seleccionar guardia'}
+            </button>
+            {selectedGuardia && (
+              <div className="cartilla-selected">✓ {selectedGuardia}</div>
+            )}
+            {guardiaOpen && (
+              <div className="cartilla-dropdown-menu">
+                <button
+                  onClick={() => {
+                    setSelectedGuardia('24 hs');
+                    setGuardiaOpen(false);
+                  }}
+                  className="cartilla-dropdown-item"
+                >
+                  24 hs
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedGuardia('Horario');
+                    setGuardiaOpen(false);
+                  }}
+                  className="cartilla-dropdown-item"
+                >
+                  Horario
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Fila 4: Prestación */}
         <div className="cartilla-row">
           <label className="cartilla-label">Prestación</label>
           <div className="cartilla-input-wrapper">
             <button
               onClick={() => setPrestacionOpen(!prestacionOpen)}
+              onBlur={() => setTimeout(() => setPrestacionOpen(false), 150)}
               className="cartilla-dropdown-button"
             >
               {selectedPrestacion || 'Seleccionar prestación'}
             </button>
+            {selectedPrestacion && (
+              <div className="cartilla-selected">✓ {selectedPrestacion}</div>
+            )}
             {prestacionOpen && (
               <div className="cartilla-dropdown-menu">
                 {Array.isArray(filteredPrestaciones) && filteredPrestaciones.map((prest) => (
@@ -469,17 +494,21 @@ const CartillaApp = () => {
           </div>
         </div>
 
-        {/* Fila 4: Detalle */}
+        {/* Fila 5: Detalle */}
         <div className="cartilla-row">
           <label className="cartilla-label">Detalle</label>
           <div className="cartilla-input-wrapper">
             <button
               onClick={() => selectedPrestacion && setDetalleOpen(!detalleOpen)}
+              onBlur={() => setTimeout(() => setDetalleOpen(false), 150)}
               disabled={!selectedPrestacion}
               className="cartilla-dropdown-button"
             >
               {selectedDetalle || 'Seleccionar detalle'}
             </button>
+            {selectedDetalle && (
+              <div className="cartilla-selected">✓ {selectedDetalle}</div>
+            )}
             {detalleOpen && selectedPrestacion && (
               <div className="cartilla-dropdown-menu">
                 {Array.isArray(filteredDetalles) && filteredDetalles.map((det) => (
@@ -510,11 +539,12 @@ const CartillaApp = () => {
         </div>
 
         {/* Resumen de Filtros */}
-        {(selectedPlan || selectedProvincia || selectedPrestacion) && (
+        {(selectedPlan || selectedProvincia || selectedGuardia || selectedPrestacion) && (
           <div className="cartilla-summary">
             <p>
               <span className="summary-title">Búsqueda activa:</span>
               {selectedPlan && ` Plan: ${selectedPlan} |`}
+              {selectedGuardia && ` Guardia: ${selectedGuardia} |`}
               {selectedProvincia && ` Provincia: ${selectedProvincia} |`}
               {selectedPartido && ` Partido: ${selectedPartido} |`}
               {selectedLocalidad && ` Localidad: ${selectedLocalidad} |`}
