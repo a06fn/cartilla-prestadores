@@ -94,7 +94,7 @@ export const seccionales = [
     "PROVINCIA": "La Pampa",
     "PARTIDO": "Maraco",
     "LOCALIDAD": "General Pico",
-    "SECCIONAL": "LA PAMPA",
+    "SECCIONAL": "LA PAMPA GENERAL PICO",
     "DIRECCION": "Calle 5 Nº 142 e/4 y 6",
     "TELEFONO": "02302-4304 01"
   },
@@ -103,7 +103,7 @@ export const seccionales = [
     "PROVINCIA": "La Pampa",
     "PARTIDO": "La Pampa Capital",
     "LOCALIDAD": "Santa Rosa",
-    "SECCIONAL": "LA PLATA",
+    "SECCIONAL": "LA PAMPA SANTA ROSA",
     "DIRECCION": "Garibaldi 104",
     "TELEFONO": "02954-434123"
   },
@@ -112,7 +112,7 @@ export const seccionales = [
     "PROVINCIA": "Rio Negro",
     "PARTIDO": "General Roca",
     "LOCALIDAD": "General Roca",
-    "SECCIONAL": "CORDOBA",
+    "SECCIONAL": "RIO NEGRO",
     "DIRECCION": "25 de Mayo 562",
     "TELEFONO": "0298-4432812"
   },
@@ -130,7 +130,7 @@ export const seccionales = [
     "PROVINCIA": "Chubut",
     "PARTIDO": "Futaleufu",
     "LOCALIDAD": "Esquel",
-    "SECCIONAL": "CHUBUT",
+    "SECCIONAL": "CHUBUT ESQUEL",
     "DIRECCION": "Perito Moreno 766 Dto. 4",
     "TELEFONO": "02945-455871"
   },
@@ -139,7 +139,7 @@ export const seccionales = [
     "PROVINCIA": "Chubut",
     "PARTIDO": "Biedma",
     "LOCALIDAD": "Puerto Madryn",
-    "SECCIONAL": "CHUBUT",
+    "SECCIONAL": "CHUBUT PUERTO MADRYN",
     "DIRECCION": "Mitre 150",
     "TELEFONO": "0280-4474855"
   },
@@ -148,7 +148,7 @@ export const seccionales = [
     "PROVINCIA": "Chubut",
     "PARTIDO": "Rawson",
     "LOCALIDAD": "Trelew",
-    "SECCIONAL": "CHUBUT",
+    "SECCIONAL": "CHUBUT TRELEW",
     "DIRECCION": "Joseph Jones 184",
     "TELEFONO": "0280-4422438"
   },
@@ -157,7 +157,7 @@ export const seccionales = [
     "PROVINCIA": "Chubut",
     "PARTIDO": "Escalante",
     "LOCALIDAD": "Comodoro Rivadavia",
-    "SECCIONAL": "CHUBUT",
+    "SECCIONAL": "CHUBUT COMODORO RIVADAVIA",
     "DIRECCION": "Ramon Huenchucheo 253 P Palazzo",
     "TELEFONO": "0297-4063426; 297 405-8722"
   },
@@ -166,7 +166,7 @@ export const seccionales = [
     "PROVINCIA": "Santa Cruz",
     "PARTIDO": "Guer Aike",
     "LOCALIDAD": "Rio Gallegos",
-    "SECCIONAL": "SANTA CRUZ",
+    "SECCIONAL": "SANTA CRUZ RIO GALLEGOS",
     "DIRECCION": "Pje. Zucarino 541",
     "TELEFONO": "02966-423282;02966-439846"
   },
@@ -175,7 +175,7 @@ export const seccionales = [
     "PROVINCIA": "Tierra del Fuego",
     "PARTIDO": "Rio Grande",
     "LOCALIDAD": "Rio Grande",
-    "SECCIONAL": "SAN LUIS",
+    "SECCIONAL": "TIERRA DEL FUEGO RIO GRANDE",
     "DIRECCION": "Piedrabuena 976",
     "TELEFONO": "02964-426761"
   },
@@ -184,7 +184,7 @@ export const seccionales = [
     "PROVINCIA": "Tierra del Fuego",
     "PARTIDO": "Ushuaia",
     "LOCALIDAD": "Ushuaia",
-    "SECCIONAL": "TIERRA DEL FUEGO",
+    "SECCIONAL": "TIERRA DEL FUEGO USHUAIA",
     "DIRECCION": "Malvinas Argentinas 20",
     "TELEFONO": "02901-42 3280"
   },
@@ -193,7 +193,7 @@ export const seccionales = [
     "PROVINCIA": "Santa Fe",
     "PARTIDO": "Rosario",
     "LOCALIDAD": "Rosario",
-    "SECCIONAL": "ROSARIO",
+    "SECCIONAL": "SANTA FE ROSARIO",
     "DIRECCION": "Av. Francia 1231",
     "TELEFONO": "0341-4373272;0341-4301158;0341-4371331"
   },
@@ -229,7 +229,7 @@ export const seccionales = [
     "PROVINCIA": "Cordoba",
     "PARTIDO": "Rio Cuarto",
     "LOCALIDAD": "Rio Cuarto",
-    "SECCIONAL": "CORDOBA",
+    "SECCIONAL": "CORDOBA RIO CUARTO",
     "DIRECCION": "Pcia. De La Rioja 986",
     "TELEFONO": "0358-4642581"
   },
@@ -364,7 +364,7 @@ export const seccionales = [
     "PROVINCIA": "Santa Cruz",
     "PARTIDO": "Deseado",
     "LOCALIDAD": "Caleta Olivia",
-    "SECCIONAL": "SANTA CRUZ",
+    "SECCIONAL": "SANTA CRUZ CALETA OLIVIA",
     "DIRECCION": "Independencia 1171 barrio Unión",
     "TELEFONO": "WSP 2976 07-7276"
   },
@@ -373,7 +373,7 @@ export const seccionales = [
     "PROVINCIA": "Entre Rios",
     "PARTIDO": "Concordia",
     "LOCALIDAD": "Concordia",
-    "SECCIONAL": "ENTRE RIOS",
+    "SECCIONAL": "ENTRE RIOS CONCORDIA",
     "DIRECCION": "CONCEJAL VEIGA 638",
     "TELEFONO": "3454018973 "
   },
@@ -382,7 +382,7 @@ export const seccionales = [
     "PROVINCIA": "Entre Rios",
     "PARTIDO": "Gualeguaychu",
     "LOCALIDAD": "Gualeguaychu",
-    "SECCIONAL": "ENTRE RIOS",
+    "SECCIONAL": "ENTRE RIOS GUALEGUAYCHU",
     "DIRECCION": "ANDRADE 1058",
     "TELEFONO": ""
   }
