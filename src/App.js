@@ -122,6 +122,7 @@ const CartillaApp = () => {
 
   const filteredPrestaciones = etiquetas.PRESTACION || [];
   const filteredDetalles = selectedPrestacion ? etiquetas[selectedPrestacion] || [] : [];
+  const filteredGuardias = guardias || [];
 
   const handleClearFilters = () => {
     setSelectedPlan('');
@@ -244,7 +245,7 @@ const CartillaApp = () => {
             </div>
           </div>
         </div>
-
+      <div className="cartilla-row" >
         {/* Fila 2: Geolocalización - LAYOUT VERTICAL */}
         <div style={{ display: 'flex', gap: '20px', marginBottom: '24px' }}>
           {/* Sección izquierda: Provincia, Partido, Localidad */}
@@ -280,7 +281,7 @@ const CartillaApp = () => {
                 )}
               </div>
             </div>
-
+      
             {/* Partido */}
             <div className="cartilla-dropdown" style={{ marginBottom: '16px' }}>
               <label className="cartilla-label">Partido</label>
@@ -404,7 +405,7 @@ const CartillaApp = () => {
             </div>
           )}
         </div>
-
+      </div>
         {/* Aviso de ubicación aproximada */}
         {avisoUbicacion && !selectedLocalidad && (
           <div style={{
@@ -421,14 +422,13 @@ const CartillaApp = () => {
         )}
 
         {/* Fila 3: GUARDIA - PRIORIDAD MÁXIMA */}
-        <div className="cartilla-row" style={{ backgroundColor: '#fffbeb', borderLeft: '5px solid #00BCD4' }}>
-          <label className="cartilla-label" style={{ color: '#00695C' }}>Guardia</label>
+        <div className="cartilla-guardia-row">
+          <label className="cartilla-label">Guardia</label>
           <div className="cartilla-input-wrapper">
             <button
               onClick={() => setGuardiaOpen(!guardiaOpen)}
               onBlur={() => setTimeout(() => setGuardiaOpen(false), 150)}
               className="cartilla-dropdown-button"
-              style={{ borderColor: '#00BCD4' }}
             >
               {selectedGuardia || 'Seleccionar guardia'}
             </button>
@@ -437,24 +437,18 @@ const CartillaApp = () => {
             )}
             {guardiaOpen && (
               <div className="cartilla-dropdown-menu">
-                <button
-                  onClick={() => {
-                    setSelectedGuardia('24 hs');
-                    setGuardiaOpen(false);
-                  }}
-                  className="cartilla-dropdown-item"
-                >
-                  24 hs
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedGuardia('Horario');
-                    setGuardiaOpen(false);
-                  }}
-                  className="cartilla-dropdown-item"
-                >
-                  Horario
-                </button>
+                {Array.isArray(filteredGuardias) && filteredGuardias.map((guard) => (
+                  <button
+                    key={guard}
+                    onClick={() => {
+                      setSelectedGuardia(guard);
+                      setGuardiaOpen(false);
+                    }}
+                    className="cartilla-dropdown-item"
+                  >
+                    {guard}
+                  </button>
+                ))}
               </div>
             )}
           </div>

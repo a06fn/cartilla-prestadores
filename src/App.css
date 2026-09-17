@@ -66,7 +66,22 @@ body {
   transition: all 0.3s ease;
 }
 
+.cartilla-guardia-row {
+  background: rgb(253, 240, 240);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #fa0d0d;
+  transition: all 0.3s ease;
+  
+}
+
 .cartilla-row:hover {
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.07);
+}
+
+.cartilla-guardia-row:hover {
   box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.07);
 }
 
@@ -138,7 +153,7 @@ body {
 
 .cartilla-input-wrapper {
   position: relative;
-  width: 100%;
+  width: 50%;
 }
 
 .cartilla-dropdown {
@@ -146,7 +161,7 @@ body {
 }
 
 .cartilla-selected {
-  font-size: 12px;
+  font-size: 17px;
   color: #2563eb;
   margin-top: 6px;
   font-weight: 600;
@@ -368,6 +383,11 @@ body {
     margin-bottom: 16px;
   }
 
+    .cartilla-guardia-row {
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
   .cartilla-button-primary,
   .cartilla-button-danger {
     padding: 10px 18px;
@@ -387,6 +407,11 @@ body {
   .cartilla-row {
     padding: 16px;
     border-radius: 8px;
+  }
+
+  .cartilla-guardia-row {
+    padding: 18px;
+    margin-bottom: 16px;
   }
 
   .cartilla-label {
