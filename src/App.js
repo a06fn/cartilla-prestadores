@@ -401,6 +401,7 @@ const CartillaApp = () => {
                     }}
                   >
                     <div>
+                      <p>Su Seccional es:</p>
                       <span className="cartilla-seccional-label">Nombre Seccional</span>
                       <p className="cartilla-seccional-value">
                         {seccionalEncontrada['NOMBRE SECCIONAL'] || '-'}
