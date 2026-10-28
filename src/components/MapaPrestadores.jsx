@@ -70,7 +70,7 @@ export default function MapaPrestadores({ prestadores, centro, radioKm, onClose 
         fillColor: '#ef4444',
         fillOpacity: 1,
       })
-        .bindPopup('Tu ubicación')
+        .bindPopup(centro.esUsuario ? 'Tu ubicación' : 'Centro de la localidad elegida')
         .addTo(mapa);
 
       if (radioKm) {

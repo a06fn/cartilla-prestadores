@@ -460,13 +460,13 @@ body {
 }
 
 .cartilla-campo-plan { grid-area: 1 / 1; }
-.cartilla-campo-guardia { grid-area: 1 / 2; }
-.cartilla-campo-prestacion { grid-area: 1 / 3; }
-.cartilla-campo-detalle { grid-area: 1 / 4; }
+.cartilla-campo-prestacion { grid-area: 1 / 2; }
+.cartilla-campo-detalle { grid-area: 1 / 3; }
+.cartilla-campo-ubicacion { grid-area: 1 / 4; }
 .cartilla-campo-provincia { grid-area: 2 / 1; }
 .cartilla-campo-partido { grid-area: 2 / 2; }
 .cartilla-campo-localidad { grid-area: 2 / 3; }
-.cartilla-campo-ubicacion { grid-area: 2 / 4; }
+.cartilla-campo-distancia { grid-area: 2 / 4; }
 
 .cartilla-filtros .cartilla-label {
   font-size: 10px;
@@ -508,6 +508,44 @@ body {
 
 .cartilla-filtros .cartilla-dropdown-item:hover {
   padding-left: 14px;
+}
+
+/* GUARDIA dentro de Prestación */
+.cartilla-dropdown-item-guardia {
+  background: #fef2f2;
+  color: #b91c1c;
+  font-weight: 700;
+  border-left-color: #dc2626;
+}
+
+.cartilla-dropdown-item-guardia:hover {
+  background: #fee2e2;
+  color: #991b1b;
+  border-left-color: #991b1b;
+  padding-left: 14px;
+}
+
+.cartilla-filtros .cartilla-button-guardia-activa {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+/* Chips de distancia */
+.cartilla-chips {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 34px;
+}
+
+.cartilla-chips .cartilla-radio-btn {
+  height: 26px;
+  padding: 0 8px;
+  font-size: 11px;
+  white-space: nowrap;
 }
 
 .cartilla-btn-ubicacion {
@@ -801,6 +839,14 @@ body {
   border-color: #2563eb;
   color: #ffffff;
   box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
+}
+
+.cartilla-radio-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  background: #f9fafb;
+  color: #9ca3af;
+  box-shadow: none;
 }
 
 .cartilla-boton-mapa {

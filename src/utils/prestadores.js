@@ -82,16 +82,14 @@ export function prepararPrestador(p) {
 }
 
 export function filtrarPrestadores(filas, filtros) {
-  const { plan, guardia, provincia, partido, localidad, prestacion, detalle } = filtros;
+  const { plan, provincia, partido, localidad, prestacion, detalle } = filtros;
 
   return filas.filter((p) => {
     if (plan && p._plan !== norm(plan)) return false;
 
-    // Guardia y Prestación son excluyentes: una fila de guardia no tiene especialidad.
-    if (guardia) {
-      if (p._prestacion !== 'GUARDIA' || p._especialidad !== norm(guardia)) return false;
-    } else {
-      if (prestacion && p._prestacion !== prestacion) return false;
+    // "GUARDIA" es una prestación más: se filtra igual que el resto.
+    if (prestacion) {
+      if (p._prestacion !== prestacion) return false;
       if (detalle && p._especialidad !== norm(detalle)) return false;
     }
 
