@@ -11,8 +11,8 @@ import { filtrarPrestadores, agruparPorPrestador, filtrarPorRadio } from './util
 import MapaPrestadores from './components/MapaPrestadores';
 
 const LIMITE_RESULTADOS = 50;
-const RADIO_DEFAULT = 50;
-const RADIOS = [10, 25, 50, 100];
+const RADIO_DEFAULT = 20;
+const RADIOS = [1, 5, 20, 50];
 
 const CartillaApp = () => {
   const [selectedPlan, setSelectedPlan] = useState('');
@@ -86,10 +86,13 @@ const CartillaApp = () => {
     let efectivo = radioKm;
     let lista = armar(radioKm);
 
-    // Si hay muy pocos resultados, ampliamos automáticamente hasta 100 km.
-    if (ubicacionUsuario && lista.length < 5 && radioKm < 100) {
-      efectivo = 100;
-      lista = armar(100);
+    // Si hay muy pocos resultados, ampliamos de a un escalón hasta llegar a 50 km.
+    if (ubicacionUsuario && lista.length < 5) {
+      const desde = Math.max(0, RADIOS.indexOf(radioKm));
+      for (let i = desde + 1; i < RADIOS.length && lista.length < 5; i += 1) {
+        efectivo = RADIOS[i];
+        lista = armar(efectivo);
+      }
     }
 
     if (ubicacionUsuario) {
@@ -297,62 +300,154 @@ const CartillaApp = () => {
           <p>OBRA SOCIAL DEL PERSONAL DE TELEVISION</p>
         </div>
 
-        {/* Fila 1: Plan */}
-        <div className="cartilla-row">
-          <label className="cartilla-label">Plan</label>
-          <div className="cartilla-dropdown">
-            <div className="cartilla-input-wrapper">
-              <button
-                onClick={() => setPlanOpen(!planOpen)}
-                onBlur={() => setTimeout(() => setPlanOpen(false), 150)}
-                className="cartilla-dropdown-button"
-              >
-                {selectedPlan || 'Seleccionar Plan'}
-              </button>
-              {selectedPlan && (
-                <div className="cartilla-selected">✓ {selectedPlanDescripcion}</div>
-              )}
-              {planOpen && (
-                <div className="cartilla-dropdown-menu">
-                  {planes.map((plan) => (
-                    <button
-                      key={plan.nombre}
-                      onClick={() => {
-                        setSelectedPlan(plan.nombre);
-                        setSelectedPlanDescripcion(plan.descripcion);
-                        setPlanOpen(false);
-                      }}
-                      className="cartilla-dropdown-item"
-                    >
-                      {plan.nombre} - {plan.descripcion}
-                    </button>
-                  ))}
-                </div>
-              )}
+        {/* Filtros */}
+        <div className="cartilla-filtros">
+          <div className="cartilla-filtros-grid">
+            {/* Plan */}
+            <div className="cartilla-campo cartilla-campo-plan">
+              <label className="cartilla-label">Plan</label>
+              <div className="cartilla-input-wrapper">
+                <button
+                  onClick={() => setPlanOpen(!planOpen)}
+                  onBlur={() => setTimeout(() => setPlanOpen(false), 150)}
+                  className="cartilla-dropdown-button"
+                  title={selectedPlanDescripcion || ''}
+                >
+                  {selectedPlan
+                    ? `${selectedPlan} · ${selectedPlanDescripcion || ''}`
+                    : 'Seleccionar plan'}
+                </button>
+                {planOpen && (
+                  <div className="cartilla-dropdown-menu">
+                    {planes.map((plan) => (
+                      <button
+                        key={plan.nombre}
+                        onClick={() => {
+                          setSelectedPlan(plan.nombre);
+                          setSelectedPlanDescripcion(plan.descripcion);
+                          setPlanOpen(false);
+                        }}
+                        className="cartilla-dropdown-item"
+                      >
+                        <strong>{plan.nombre}</strong> · {plan.descripcion}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        </div>
-      <div className="cartilla-row" >
-        {/* Fila 2: Geolocalización - LAYOUT VERTICAL */}
-        <div style={{ display: 'flex', gap: '20px', marginBottom: '24px' }}>
-          {/* Sección izquierda: Provincia, Partido, Localidad */}
-          <div style={{ flex: 1 }}>
+
+            {/* Guardia */}
+            <div className="cartilla-campo cartilla-campo-guardia">
+              <label className="cartilla-label">Guardia</label>
+              <div className="cartilla-input-wrapper">
+                <button
+                  onClick={() => setGuardiaOpen(!guardiaOpen)}
+                  onBlur={() => setTimeout(() => setGuardiaOpen(false), 150)}
+                  className="cartilla-dropdown-button"
+                >
+                  {selectedGuardia || 'Seleccionar guardia'}
+                </button>
+                {guardiaOpen && (
+                  <div className="cartilla-dropdown-menu">
+                    {Array.isArray(filteredGuardias) && filteredGuardias.map((guard) => (
+                      <button
+                        key={guard}
+                        onClick={() => {
+                          setSelectedGuardia(guard);
+                          setSelectedPrestacion('');
+                          setSelectedDetalle('');
+                          setGuardiaOpen(false);
+                        }}
+                        className="cartilla-dropdown-item"
+                      >
+                        {guard}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Prestación */}
+            <div className="cartilla-campo cartilla-campo-prestacion">
+              <label className="cartilla-label">Prestación</label>
+              <div className="cartilla-input-wrapper">
+                <button
+                  onClick={() => setPrestacionOpen(!prestacionOpen)}
+                  onBlur={() => setTimeout(() => setPrestacionOpen(false), 150)}
+                  className="cartilla-dropdown-button"
+                >
+                  {selectedPrestacion || 'Seleccionar prestación'}
+                </button>
+                {prestacionOpen && (
+                  <div className="cartilla-dropdown-menu">
+                    {Array.isArray(filteredPrestaciones) && filteredPrestaciones.map((prest) => (
+                      <button
+                        key={typeof prest === 'object' ? prest.nombre : prest}
+                        onClick={() => {
+                          setSelectedPrestacion(typeof prest === 'object' ? prest.nombre : prest);
+                          setSelectedDetalle('');
+                          setSelectedGuardia('');
+                          setPrestacionOpen(false);
+                        }}
+                        className="cartilla-dropdown-item"
+                      >
+                        {typeof prest === 'object' ? prest.nombre : prest}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Detalle */}
+            <div className="cartilla-campo cartilla-campo-detalle">
+              <label className="cartilla-label">Detalle</label>
+              <div className="cartilla-input-wrapper">
+                <button
+                  onClick={() => selectedPrestacion && setDetalleOpen(!detalleOpen)}
+                  onBlur={() => setTimeout(() => setDetalleOpen(false), 150)}
+                  disabled={!selectedPrestacion}
+                  className="cartilla-dropdown-button"
+                >
+                  {selectedDetalle || 'Seleccionar detalle'}
+                </button>
+                {detalleOpen && selectedPrestacion && (
+                  <div className="cartilla-dropdown-menu">
+                    {Array.isArray(filteredDetalles) && filteredDetalles.map((det) => (
+                      <button
+                        key={typeof det === 'object' ? det.nombre : det}
+                        onClick={() => {
+                          setSelectedDetalle(typeof det === 'object' ? det.nombre : det);
+                          setDetalleOpen(false);
+                        }}
+                        className="cartilla-dropdown-item"
+                      >
+                        {typeof det === 'object' ? det.nombre : det}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
             {/* Provincia */}
-            <div className="cartilla-dropdown" style={{ marginBottom: '16px' }}>
+            <div className="cartilla-campo cartilla-campo-provincia">
               <label className="cartilla-label">Provincia</label>
               <div className="cartilla-input-wrapper">
                 <input
                   type="text"
                   placeholder="Buscar provincia..."
-                  value={provinciaSearch}
+                  value={provinciaOpen ? provinciaSearch : selectedProvincia}
                   onChange={(e) => setProvinciaSearch(e.target.value)}
-                  onFocus={() => setProvinciaOpen(true)}
+                  onFocus={() => {
+                    setProvinciaSearch('');
+                    setProvinciaOpen(true);
+                  }}
                   onBlur={() => setTimeout(() => setProvinciaOpen(false), 150)}
                   className="cartilla-input"
                 />
-                {selectedProvincia && (
-                  <div className="cartilla-selected">✓ {selectedProvincia}</div>
-                )}
                 {provinciaOpen && (
                   <div className="cartilla-dropdown-menu">
                     {filteredProvincia.map((prov) => (
@@ -368,24 +463,24 @@ const CartillaApp = () => {
                 )}
               </div>
             </div>
-      
+
             {/* Partido */}
-            <div className="cartilla-dropdown" style={{ marginBottom: '16px' }}>
+            <div className="cartilla-campo cartilla-campo-partido">
               <label className="cartilla-label">Partido</label>
               <div className="cartilla-input-wrapper">
                 <input
                   type="text"
                   placeholder="Seleccionar partido..."
-                  value={partidoSearch}
+                  value={partidoOpen ? partidoSearch : selectedPartido}
                   onChange={(e) => setPartidoSearch(e.target.value)}
-                  onFocus={() => selectedProvincia && setPartidoOpen(true)}
+                  onFocus={() => {
+                    setPartidoSearch('');
+                    if (selectedProvincia) setPartidoOpen(true);
+                  }}
                   onBlur={() => setTimeout(() => setPartidoOpen(false), 150)}
                   disabled={!selectedProvincia}
                   className="cartilla-input"
                 />
-                {selectedPartido && (
-                  <div className="cartilla-selected">✓ {selectedPartido}</div>
-                )}
                 {partidoOpen && selectedProvincia && (
                   <div className="cartilla-dropdown-menu">
                     {filteredPartido.map((part) => (
@@ -403,22 +498,22 @@ const CartillaApp = () => {
             </div>
 
             {/* Localidad */}
-            <div className="cartilla-dropdown">
+            <div className="cartilla-campo cartilla-campo-localidad">
               <label className="cartilla-label">Localidad</label>
               <div className="cartilla-input-wrapper">
                 <input
                   type="text"
                   placeholder="Seleccionar localidad..."
-                  value={localidadSearch}
+                  value={localidadOpen ? localidadSearch : selectedLocalidad}
                   onChange={(e) => setLocalidadSearch(e.target.value)}
-                  onFocus={() => selectedPartido && setLocalidadOpen(true)}
+                  onFocus={() => {
+                    setLocalidadSearch('');
+                    if (selectedPartido) setLocalidadOpen(true);
+                  }}
                   onBlur={() => setTimeout(() => setLocalidadOpen(false), 150)}
                   disabled={!selectedPartido}
                   className="cartilla-input"
                 />
-                {selectedLocalidad && (
-                  <div className="cartilla-selected">✓ {selectedLocalidad}</div>
-                )}
                 {localidadOpen && selectedPartido && (
                   <div className="cartilla-dropdown-menu">
                     {filteredLocalidad.map((loc) => (
@@ -440,205 +535,56 @@ const CartillaApp = () => {
                 )}
               </div>
             </div>
-          </div>
 
-          {/* Centro: Botón Mi Ubicación */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <button
-              className="cartilla-button-primary"
-              onClick={handleMiUbicacion}
-              disabled={cargandoUbicacion}
-              style={{
-                whiteSpace: 'nowrap',
-                height: 'fit-content',
-                flexShrink: 0
-              }}
-            >
-              {cargandoUbicacion ? '⏳ Detectando...' : '📍 Mi Ubicación'}
-            </button>
-          </div>
-
-          {/* Derecha: Tarjeta de Seccional */}
-          {ubicacionCompleta && (
-            <div
-              style={{
-                minWidth: '280px',
-                padding: '14px',
-                border: '2px solid #3b82f6',
-                borderRadius: '8px',
-                background: '#eff6ff',
-                flexShrink: 0
-              }}
-            >
-              {seccionalEncontrada ? (
-                <>
-                  <p style={{ margin: '0 0 6px 0', fontSize: '11px', color: '#666', fontWeight: '500' }}>
-                    Su seccional más cercana es:
-                  </p>
-                  <p style={{ margin: '0 0 9px 0', fontSize: '13px', fontWeight: 'bold', color: '#1e40af' }}>
-                    ✓ {seccionalEncontrada['NOMBRE SECCIONAL'] || 'Seccional'}
-                  </p>
-                  <div style={{ fontSize: '11px', lineHeight: '1.5', color: '#333' }}>
-                    <div><span style={{ fontWeight: '600' }}>Localidad:</span> {seccionalEncontrada.LOCALIDAD || '-'}</div>
-                    <div><span style={{ fontWeight: '600' }}>Código:</span> {seccionalEncontrada.SECCIONAL || '-'}</div>
-                    <div><span style={{ fontWeight: '600' }}>Dirección:</span> {seccionalEncontrada.DIRECCION || '-'}</div>
-                    <div><span style={{ fontWeight: '600' }}>Teléfono:</span> {seccionalEncontrada.TELEFONO || 'Sin teléfono'}</div>
-                  </div>
-                </>
-              ) : (
-                <p style={{ margin: 0, fontSize: '11px', color: '#b45309' }}>
-                  ⚠ No encontrada
-                </p>
-              )}
+            {/* Mi ubicación */}
+            <div className="cartilla-campo cartilla-campo-ubicacion">
+              <label className="cartilla-label">Cercanía</label>
+              <button
+                className="cartilla-btn-ubicacion"
+                onClick={handleMiUbicacion}
+                disabled={cargandoUbicacion}
+              >
+                {cargandoUbicacion ? '⏳ Buscando…' : '📍 Mi ubicación'}
+              </button>
             </div>
-          )}
+          </div>
+
+          <div className="cartilla-filtros-footer">
+            {ubicacionCompleta && (
+              <div className="cartilla-seccional-chip">
+                {seccionalEncontrada ? (
+                  <>
+                    <span className="cartilla-seccional-etiqueta">Seccional</span>
+                    <strong>{seccionalEncontrada['NOMBRE SECCIONAL'] || 'Sin nombre'}</strong>
+                    <span>
+                      {[
+                        seccionalEncontrada.LOCALIDAD,
+                        seccionalEncontrada.SECCIONAL,
+                        seccionalEncontrada.TELEFONO
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </span>
+                    {seccionalEncontrada.DIRECCION && (
+                      <span className="cartilla-seccional-dir">{seccionalEncontrada.DIRECCION}</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="cartilla-seccional-etiqueta">⚠ Seccional no encontrada</span>
+                )}
+              </div>
+            )}
+
+            <button onClick={handleClearFilters} className="cartilla-btn-limpiar">
+              🗑️ Limpiar filtros
+            </button>
+          </div>
         </div>
-      </div>
-        {/* Aviso de ubicación aproximada */}
+
         {avisoUbicacion && !selectedLocalidad && (
-          <div style={{
-            padding: '12px',
-            marginBottom: '16px',
-            backgroundColor: '#fef3c7',
-            border: '1px solid #fbbf24',
-            borderRadius: '6px',
-            fontSize: '13px',
-            color: '#92400e'
-          }}>
-            {avisoUbicacion}
-          </div>
+          <div className="cartilla-aviso-ubicacion">⚠️ {avisoUbicacion}</div>
         )}
 
-        {/* Fila 3: GUARDIA - PRIORIDAD MÁXIMA */}
-        <div className="cartilla-guardia-row">
-          <label className="cartilla-label">Guardia</label>
-          <div className="cartilla-input-wrapper">
-            <button
-              onClick={() => setGuardiaOpen(!guardiaOpen)}
-              onBlur={() => setTimeout(() => setGuardiaOpen(false), 150)}
-              className="cartilla-dropdown-button"
-            >
-              {selectedGuardia || 'Seleccionar guardia'}
-            </button>
-            {selectedGuardia && (
-              <div className="cartilla-selected">✓ {selectedGuardia}</div>
-            )}
-            {guardiaOpen && (
-              <div className="cartilla-dropdown-menu">
-                {Array.isArray(filteredGuardias) && filteredGuardias.map((guard) => (
-                  <button
-                    key={guard}
-                    onClick={() => {
-                      setSelectedGuardia(guard);
-                      setSelectedPrestacion('');
-                      setSelectedDetalle('');
-                      setGuardiaOpen(false);
-                    }}
-                    className="cartilla-dropdown-item"
-                  >
-                    {guard}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Fila 4: Prestación */}
-        <div className="cartilla-row">
-          <label className="cartilla-label">Prestación</label>
-          <div className="cartilla-input-wrapper">
-            <button
-              onClick={() => setPrestacionOpen(!prestacionOpen)}
-              onBlur={() => setTimeout(() => setPrestacionOpen(false), 150)}
-              className="cartilla-dropdown-button"
-            >
-              {selectedPrestacion || 'Seleccionar prestación'}
-            </button>
-            {selectedPrestacion && (
-              <div className="cartilla-selected">✓ {selectedPrestacion}</div>
-            )}
-            {prestacionOpen && (
-              <div className="cartilla-dropdown-menu">
-                {Array.isArray(filteredPrestaciones) && filteredPrestaciones.map((prest) => (
-                  <button
-                    key={typeof prest === 'object' ? prest.nombre : prest}
-                    onClick={() => {
-                      setSelectedPrestacion(typeof prest === 'object' ? prest.nombre : prest);
-                      setSelectedDetalle('');
-                      setSelectedGuardia('');
-                      setPrestacionOpen(false);
-                    }}
-                    className="cartilla-dropdown-item"
-                  >
-                    {typeof prest === 'object' ? prest.nombre : prest}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Fila 5: Detalle */}
-        <div className="cartilla-row">
-          <label className="cartilla-label">Detalle</label>
-          <div className="cartilla-input-wrapper">
-            <button
-              onClick={() => selectedPrestacion && setDetalleOpen(!detalleOpen)}
-              onBlur={() => setTimeout(() => setDetalleOpen(false), 150)}
-              disabled={!selectedPrestacion}
-              className="cartilla-dropdown-button"
-            >
-              {selectedDetalle || 'Seleccionar detalle'}
-            </button>
-            {selectedDetalle && (
-              <div className="cartilla-selected">✓ {selectedDetalle}</div>
-            )}
-            {detalleOpen && selectedPrestacion && (
-              <div className="cartilla-dropdown-menu">
-                {Array.isArray(filteredDetalles) && filteredDetalles.map((det) => (
-                  <button
-                    key={typeof det === 'object' ? det.nombre : det}
-                    onClick={() => {
-                      setSelectedDetalle(typeof det === 'object' ? det.nombre : det);
-                      setDetalleOpen(false);
-                    }}
-                    className="cartilla-dropdown-item"
-                  >
-                    {typeof det === 'object' ? det.nombre : det}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Botón Limpiar Filtros */}
-        <div className="cartilla-actions">
-          <button
-            onClick={handleClearFilters}
-            className="cartilla-button-danger"
-          >
-            🗑️ Limpiar Filtros
-          </button>
-        </div>
-
-        {/* Resumen de Filtros */}
-        {(ubicacionUsuario || selectedPlan || selectedProvincia || selectedGuardia || selectedPrestacion) && (
-          <div className="cartilla-summary">
-            <p>
-              <span className="summary-title">Búsqueda activa:</span>
-              {ubicacionUsuario && ` 📍 Cerca de mi ubicación (${radioAplicado} km) |`}
-              {selectedPlan && ` Plan: ${selectedPlan} |`}
-              {selectedGuardia && ` Guardia: ${selectedGuardia} |`}
-              {!ubicacionUsuario && selectedProvincia && ` Provincia: ${selectedProvincia} |`}
-              {!ubicacionUsuario && selectedPartido && ` Partido: ${selectedPartido} |`}
-              {!ubicacionUsuario && selectedLocalidad && ` Localidad: ${selectedLocalidad} |`}
-              {selectedPrestacion && ` Prestación: ${selectedPrestacion}`}
-              {selectedDetalle && ` - ${selectedDetalle}`}
-            </p>
-          </div>
-        )}
         {/* Resultados */}
         {filtrosActivos && (
           <div className="cartilla-resultados">
