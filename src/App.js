@@ -7,9 +7,12 @@ import { etiquetas } from './data/etiquetas';
 import { detectarMiUbicacion } from './utils/geolocalizacion';
 import { guardias } from './data/guardias'; 
 import { usePrestadores } from './hooks/usePrestadores';
-import { filtrarPrestadores, agruparPorPrestador } from './utils/prestadores';
+import { filtrarPrestadores, agruparPorPrestador, filtrarPorRadio } from './utils/prestadores';
+import MapaPrestadores from './components/MapaPrestadores';
 
 const LIMITE_RESULTADOS = 50;
+const RADIO_DEFAULT = 50;
+const RADIOS = [10, 25, 50, 100];
 
 const CartillaApp = () => {
   const [selectedPlan, setSelectedPlan] = useState('');
@@ -43,29 +46,63 @@ const CartillaApp = () => {
   // Cartilla de prestadores (public/data/prestadores.csv)
   const { prestadores, cargando, error } = usePrestadores();
 
+  // Ubicación del usuario y radio de cercanía
+  const [ubicacionUsuario, setUbicacionUsuario] = useState(null);
+  const [radioKm, setRadioKm] = useState(RADIO_DEFAULT);
+  const [mapaAbierto, setMapaAbierto] = useState(false);
+
   const filtrosActivos = Boolean(
-    selectedPlan || selectedGuardia || selectedProvincia ||
+    ubicacionUsuario || selectedPlan || selectedGuardia || selectedProvincia ||
     selectedPrestacion || selectedDetalle
   );
 
-  const resultados = useMemo(() => {
-    if (!filtrosActivos) return [];
+  const { resultados, radioAplicado } = useMemo(() => {
+    if (!filtrosActivos) return { resultados: [], radioAplicado: radioKm };
 
-    const filas = filtrarPrestadores(prestadores, {
-      plan: selectedPlan,
-      guardia: selectedGuardia,
-      provincia: selectedProvincia,
-      partido: selectedPartido,
-      localidad: selectedLocalidad,
-      prestacion: selectedPrestacion,
-      detalle: selectedDetalle
-    });
+    const armar = (radio) => {
+      const base = ubicacionUsuario
+        ? filtrarPorRadio(prestadores, {
+            lat: ubicacionUsuario.lat,
+            lon: ubicacionUsuario.lon,
+            radioKm: radio,
+            localidad: ubicacionUsuario.localidad
+          })
+        : prestadores;
 
-    return agruparPorPrestador(filas);
+      const filas = filtrarPrestadores(base, {
+        plan: selectedPlan,
+        guardia: selectedGuardia,
+        // En modo cercanía no se restringe por división administrativa.
+        provincia: ubicacionUsuario ? '' : selectedProvincia,
+        partido: ubicacionUsuario ? '' : selectedPartido,
+        localidad: ubicacionUsuario ? '' : selectedLocalidad,
+        prestacion: selectedPrestacion,
+        detalle: selectedDetalle
+      });
+
+      return agruparPorPrestador(filas);
+    };
+
+    let efectivo = radioKm;
+    let lista = armar(radioKm);
+
+    // Si hay muy pocos resultados, ampliamos automáticamente hasta 100 km.
+    if (ubicacionUsuario && lista.length < 5 && radioKm < 100) {
+      efectivo = 100;
+      lista = armar(100);
+    }
+
+    if (ubicacionUsuario) {
+      lista = [...lista].sort(
+        (a, b) => (a.distancia ?? Infinity) - (b.distancia ?? Infinity)
+      );
+    }
+
+    return { resultados: lista, radioAplicado: efectivo };
   }, [
-    prestadores, filtrosActivos, selectedPlan, selectedGuardia,
-    selectedProvincia, selectedPartido, selectedLocalidad,
-    selectedPrestacion, selectedDetalle
+    prestadores, filtrosActivos, ubicacionUsuario, radioKm,
+    selectedPlan, selectedGuardia, selectedProvincia, selectedPartido,
+    selectedLocalidad, selectedPrestacion, selectedDetalle
   ]);
 
   const resultadosVisibles = resultados.slice(0, LIMITE_RESULTADOS);
@@ -126,6 +163,7 @@ const CartillaApp = () => {
 
   // Obtener partidos cuando selecciona provincia
   const handleProvinciaSelect = (prov) => {
+    setUbicacionUsuario(null);
     setSelectedProvincia(prov);
     setProvinciaOpen(false);
     setProvinciaSearch('');
@@ -142,6 +180,7 @@ const CartillaApp = () => {
 
   // Obtener localidades cuando selecciona partido
   const handlePartidoSelect = (part) => {
+    setUbicacionUsuario(null);
     setSelectedPartido(part);
     setPartidoOpen(false);
     setPartidoSearch('');
@@ -175,6 +214,9 @@ const CartillaApp = () => {
     setPartidoSearch('');
     setLocalidadSearch('');
     setAvisoUbicacion('');
+    setUbicacionUsuario(null);
+    setRadioKm(RADIO_DEFAULT);
+    setMapaAbierto(false);
   };
 
   // Handler para el botón Mi Ubicación
@@ -191,6 +233,17 @@ const CartillaApp = () => {
         setSelectedLocalidad(resultado.localidad);
         setPartidosDisponibles(calcularPartidos(resultado.provincia));
         setLocalidadesDisponibles(calcularLocalidades(resultado.provincia, resultado.partido));
+
+        // Modo cercanía: usamos las coordenadas reales en lugar de la localidad exacta.
+        const coords = resultado.detectado && resultado.detectado.coords;
+        if (coords) {
+          setUbicacionUsuario({
+            lat: coords.lat,
+            lon: coords.lon,
+            localidad: resultado.localidad || ''
+          });
+          setRadioKm(RADIO_DEFAULT);
+        }
       } else {
         setAvisoUbicacion(resultado.aviso);
       }
@@ -372,6 +425,7 @@ const CartillaApp = () => {
                       <button
                         key={loc}
                         onClick={() => {
+                          setUbicacionUsuario(null);
                           setSelectedLocalidad(loc);
                           setLocalidadOpen(false);
                           setLocalidadSearch('');
@@ -570,15 +624,16 @@ const CartillaApp = () => {
         </div>
 
         {/* Resumen de Filtros */}
-        {(selectedPlan || selectedProvincia || selectedGuardia || selectedPrestacion) && (
+        {(ubicacionUsuario || selectedPlan || selectedProvincia || selectedGuardia || selectedPrestacion) && (
           <div className="cartilla-summary">
             <p>
               <span className="summary-title">Búsqueda activa:</span>
+              {ubicacionUsuario && ` 📍 Cerca de mi ubicación (${radioAplicado} km) |`}
               {selectedPlan && ` Plan: ${selectedPlan} |`}
               {selectedGuardia && ` Guardia: ${selectedGuardia} |`}
-              {selectedProvincia && ` Provincia: ${selectedProvincia} |`}
-              {selectedPartido && ` Partido: ${selectedPartido} |`}
-              {selectedLocalidad && ` Localidad: ${selectedLocalidad} |`}
+              {!ubicacionUsuario && selectedProvincia && ` Provincia: ${selectedProvincia} |`}
+              {!ubicacionUsuario && selectedPartido && ` Partido: ${selectedPartido} |`}
+              {!ubicacionUsuario && selectedLocalidad && ` Localidad: ${selectedLocalidad} |`}
               {selectedPrestacion && ` Prestación: ${selectedPrestacion}`}
               {selectedDetalle && ` - ${selectedDetalle}`}
             </p>
@@ -593,11 +648,45 @@ const CartillaApp = () => {
             {!cargando && !error && (
               <>
                 <div className="cartilla-resultados-header">
-                  <h2>Resultados</h2>
-                  <span className="cartilla-resultados-count">
-                    {resultados.length} prestador{resultados.length === 1 ? '' : 'es'} encontrado{resultados.length === 1 ? '' : 's'}
-                  </span>
+                  <div className="cartilla-resultados-titulo">
+                    <h2>Resultados</h2>
+                    <span className="cartilla-resultados-count">
+                      {resultados.length} prestador{resultados.length === 1 ? '' : 'es'} encontrado{resultados.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  <div className="cartilla-resultados-acciones">
+                    {ubicacionUsuario && (
+                      <div className="cartilla-radios">
+                        <span className="cartilla-radios-label">Radio:</span>
+                        {RADIOS.map((r) => (
+                          <button
+                            key={r}
+                            onClick={() => setRadioKm(r)}
+                            className={`cartilla-radio-btn${r === radioKm ? ' activo' : ''}`}
+                          >
+                            {r} km
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {resultados.length > 0 && (
+                      <button
+                        className="cartilla-button-primary cartilla-boton-mapa"
+                        onClick={() => setMapaAbierto(true)}
+                      >
+                        🗺️ Mostrar en el mapa
+                      </button>
+                    )}
+                  </div>
                 </div>
+
+                {ubicacionUsuario && radioAplicado > radioKm && (
+                  <p className="cartilla-aviso">
+                    Había pocos resultados a {radioKm} km, así que ampliamos el radio a {radioAplicado} km.
+                  </p>
+                )}
 
                 {resultados.length === 0 ? (
                   <p className="cartilla-aviso">
@@ -613,6 +702,7 @@ const CartillaApp = () => {
                             <th>Dirección</th>
                             <th>Localidad</th>
                             <th>Teléfono</th>
+                            {ubicacionUsuario && <th>Distancia</th>}
                             <th>Planes</th>
                             <th>Prestaciones</th>
                           </tr>
@@ -629,6 +719,13 @@ const CartillaApp = () => {
                               <td>{p.domicilio || '-'}</td>
                               <td>{p.localidad || p.partido || '-'}</td>
                               <td>{p.telefono || '-'}</td>
+                              {ubicacionUsuario && (
+                                <td>
+                                  {Number.isFinite(p.distancia)
+                                    ? `${p.distancia.toFixed(1)} km`
+                                    : 's/d'}
+                                </td>
+                              )}
                               <td>{p.planes.join(', ') || '-'}</td>
                               <td>{[...p.prestaciones, ...p.guardias].join(', ') || '-'}</td>
                             </tr>
@@ -648,6 +745,15 @@ const CartillaApp = () => {
               </>
             )}
           </div>
+        )}
+
+        {mapaAbierto && (
+          <MapaPrestadores
+            prestadores={resultados}
+            centro={ubicacionUsuario}
+            radioKm={ubicacionUsuario ? radioAplicado : null}
+            onClose={() => setMapaAbierto(false)}
+          />
         )}
       </div>
     </div>

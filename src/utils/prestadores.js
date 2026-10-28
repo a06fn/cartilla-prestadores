@@ -120,6 +120,9 @@ export function agruparPorPrestador(filas) {
         provincia: p.Provincia,
         telefono: p.Telefono,
         clasificacion: p['Clasificacion prestador'],
+        lat: parseFloat(p.lat),
+        lon: parseFloat(p.lon),
+        distancia: Number.isFinite(p._distancia) ? p._distancia : null,
         planes: new Set(),
         prestaciones: new Set(),
         guardias: new Set(),
@@ -144,4 +147,42 @@ export function agruparPorPrestador(filas) {
       guardias: [...p.guardias].sort(),
     }))
     .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es'));
+}
+
+// Distancia en kilómetros entre dos coordenadas (fórmula de Haversine).
+export function distanciaKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const rad = (grados) => (grados * Math.PI) / 180;
+  const dLat = rad(lat2 - lat1);
+  const dLon = rad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(rad(lat1)) * Math.cos(rad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * Prestadores dentro de un radio (km) de `centro`.
+ * Los prestadores sin coordenadas sólo se incluyen si son de la misma localidad
+ * que el usuario (quedan con distancia null y se muestran como "s/d").
+ */
+export function filtrarPorRadio(filas, { lat, lon, radioKm, localidad }) {
+  const loc = norm(localidad);
+  const resultado = [];
+
+  filas.forEach((p) => {
+    const pLat = parseFloat(p.lat);
+    const pLon = parseFloat(p.lon);
+    const tieneCoords = Number.isFinite(pLat) && Number.isFinite(pLon);
+
+    if (!tieneCoords) {
+      if (loc && p._localidad === loc) resultado.push({ ...p, _distancia: null });
+      return;
+    }
+
+    const distancia = distanciaKm(lat, lon, pLat, pLon);
+    if (distancia <= radioKm) resultado.push({ ...p, _distancia: distancia });
+  });
+
+  return resultado;
 }
