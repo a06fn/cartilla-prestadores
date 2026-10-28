@@ -430,3 +430,123 @@ body {
     padding: 10px 14px;
   }
 }
+
+/* ===========================
+   RESULTADOS
+   =========================== */
+
+.cartilla-resultados {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+}
+
+.cartilla-resultados-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.cartilla-resultados-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.cartilla-resultados-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.cartilla-tabla-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.cartilla-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  min-width: 900px;
+}
+
+.cartilla-tabla thead th {
+  background: #eff6ff;
+  color: #1e3a8a;
+  text-align: left;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  font-size: 11px;
+  padding: 12px 14px;
+  border-bottom: 2px solid #dbeafe;
+  white-space: nowrap;
+}
+
+.cartilla-tabla tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f5f9;
+  color: #374151;
+  vertical-align: top;
+  line-height: 1.45;
+}
+
+.cartilla-tabla tbody tr:nth-child(even) {
+  background: #fafbff;
+}
+
+.cartilla-tabla tbody tr:hover {
+  background: #f0f9ff;
+}
+
+.cartilla-tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.cartilla-tabla strong {
+  display: block;
+  color: #111827;
+  font-weight: 600;
+}
+
+.cartilla-tabla-sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.cartilla-aviso {
+  font-size: 13px;
+  color: #4b5563;
+  padding: 12px 0;
+}
+
+.cartilla-aviso-error {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .cartilla-resultados {
+    padding: 18px;
+  }
+
+  .cartilla-tabla {
+    font-size: 12px;
+  }
+}

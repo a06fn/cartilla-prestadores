@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import './App.css';
 import { planes } from './data/planes';
 import { geografia } from './data/geografia';
@@ -6,6 +6,10 @@ import { seccionales } from './data/seccionales';
 import { etiquetas } from './data/etiquetas';
 import { detectarMiUbicacion } from './utils/geolocalizacion';
 import { guardias } from './data/guardias'; 
+import { usePrestadores } from './hooks/usePrestadores';
+import { filtrarPrestadores, agruparPorPrestador } from './utils/prestadores';
+
+const LIMITE_RESULTADOS = 50;
 
 const CartillaApp = () => {
   const [selectedPlan, setSelectedPlan] = useState('');
@@ -35,6 +39,36 @@ const CartillaApp = () => {
   const [cargandoUbicacion, setCargandoUbicacion] = useState(false);
   const [avisoUbicacion, setAvisoUbicacion] = useState('');
   const containerRef = React.useRef(null);
+
+  // Cartilla de prestadores (public/data/prestadores.csv)
+  const { prestadores, cargando, error } = usePrestadores();
+
+  const filtrosActivos = Boolean(
+    selectedPlan || selectedGuardia || selectedProvincia ||
+    selectedPrestacion || selectedDetalle
+  );
+
+  const resultados = useMemo(() => {
+    if (!filtrosActivos) return [];
+
+    const filas = filtrarPrestadores(prestadores, {
+      plan: selectedPlan,
+      guardia: selectedGuardia,
+      provincia: selectedProvincia,
+      partido: selectedPartido,
+      localidad: selectedLocalidad,
+      prestacion: selectedPrestacion,
+      detalle: selectedDetalle
+    });
+
+    return agruparPorPrestador(filas);
+  }, [
+    prestadores, filtrosActivos, selectedPlan, selectedGuardia,
+    selectedProvincia, selectedPartido, selectedLocalidad,
+    selectedPrestacion, selectedDetalle
+  ]);
+
+  const resultadosVisibles = resultados.slice(0, LIMITE_RESULTADOS);
 
   // Búsqueda de seccional con normalización y cascada
   const norm = (txt) =>
@@ -442,6 +476,8 @@ const CartillaApp = () => {
                     key={guard}
                     onClick={() => {
                       setSelectedGuardia(guard);
+                      setSelectedPrestacion('');
+                      setSelectedDetalle('');
                       setGuardiaOpen(false);
                     }}
                     className="cartilla-dropdown-item"
@@ -476,6 +512,7 @@ const CartillaApp = () => {
                     onClick={() => {
                       setSelectedPrestacion(typeof prest === 'object' ? prest.nombre : prest);
                       setSelectedDetalle('');
+                      setSelectedGuardia('');
                       setPrestacionOpen(false);
                     }}
                     className="cartilla-dropdown-item"
@@ -545,6 +582,71 @@ const CartillaApp = () => {
               {selectedPrestacion && ` Prestación: ${selectedPrestacion}`}
               {selectedDetalle && ` - ${selectedDetalle}`}
             </p>
+          </div>
+        )}
+        {/* Resultados */}
+        {filtrosActivos && (
+          <div className="cartilla-resultados">
+            {cargando && <p className="cartilla-aviso">Cargando cartilla de prestadores...</p>}
+            {error && <p className="cartilla-aviso cartilla-aviso-error">{error}</p>}
+
+            {!cargando && !error && (
+              <>
+                <div className="cartilla-resultados-header">
+                  <h2>Resultados</h2>
+                  <span className="cartilla-resultados-count">
+                    {resultados.length} prestador{resultados.length === 1 ? '' : 'es'} encontrado{resultados.length === 1 ? '' : 's'}
+                  </span>
+                </div>
+
+                {resultados.length === 0 ? (
+                  <p className="cartilla-aviso">
+                    No se encontraron prestadores para los filtros seleccionados.
+                  </p>
+                ) : (
+                  <>
+                    <div className="cartilla-tabla-wrapper">
+                      <table className="cartilla-tabla">
+                        <thead>
+                          <tr>
+                            <th>Prestador</th>
+                            <th>Dirección</th>
+                            <th>Localidad</th>
+                            <th>Teléfono</th>
+                            <th>Planes</th>
+                            <th>Prestaciones</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {resultadosVisibles.map((p) => (
+                            <tr key={p.id}>
+                              <td>
+                                <strong>{p.nombre}</strong>
+                                {p.clasificacion && (
+                                  <span className="cartilla-tabla-sub">{p.clasificacion}</span>
+                                )}
+                              </td>
+                              <td>{p.domicilio || '-'}</td>
+                              <td>{p.localidad || p.partido || '-'}</td>
+                              <td>{p.telefono || '-'}</td>
+                              <td>{p.planes.join(', ') || '-'}</td>
+                              <td>{[...p.prestaciones, ...p.guardias].join(', ') || '-'}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {resultados.length > LIMITE_RESULTADOS && (
+                      <p className="cartilla-aviso">
+                        Mostrando los primeros {LIMITE_RESULTADOS} de {resultados.length}.
+                        Refiná la búsqueda para ver más resultados.
+                      </p>
+                    )}
+                  </>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
