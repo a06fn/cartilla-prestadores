@@ -641,6 +641,62 @@ body {
   background: #fef2f2;
 }
 
+.cartilla-btn-buscar {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 18px;
+  border: 1px solid #1d4ed8;
+  border-radius: 6px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.cartilla-btn-buscar:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.cartilla-btn-buscar:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cartilla-plan-incluye {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #6b7280;
+}
+
+.cartilla-cambios {
+  margin-bottom: 10px;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: #92400e;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-left: 4px solid #f59e0b;
+  border-radius: 6px;
+}
+
+.cartilla-hint-buscar {
+  margin-bottom: 10px;
+  padding: 7px 12px;
+  font-size: 12px;
+  color: #1e40af;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+}
+
 .cartilla-aviso-ubicacion {
   margin-bottom: 10px;
   padding: 6px 10px;

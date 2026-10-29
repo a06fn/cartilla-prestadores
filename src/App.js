@@ -7,12 +7,53 @@ import { etiquetas } from './data/etiquetas';
 import { detectarMiUbicacion } from './utils/geolocalizacion';
 import { guardias } from './data/guardias'; 
 import { usePrestadores } from './hooks/usePrestadores';
-import { norm, filtrarPrestadores, agruparPorPrestador, filtrarPorRadio } from './utils/prestadores';
+import { norm, planesIncluidos, filtrarPrestadores, agruparPorPrestador, filtrarPorRadio } from './utils/prestadores';
 import MapaPrestadores from './components/MapaPrestadores';
 
 const LIMITE_RESULTADOS = 50;
 const RADIO_DEFAULT = 20;
 const RADIOS = [1, 5, 20, 50];
+
+// Centro geográfico (promedio de coordenadas) de una localidad.
+function calcularCentro(filas, localidad, partido) {
+  if (!localidad) return null;
+
+  const loc = norm(localidad);
+  const part = norm(partido);
+  let lat = 0;
+  let lon = 0;
+  let n = 0;
+
+  for (const p of filas) {
+    if (p._localidad !== loc) continue;
+    if (part && p._partido !== part) continue;
+
+    const pLat = parseFloat(p.lat);
+    const pLon = parseFloat(p.lon);
+    if (!Number.isFinite(pLat) || !Number.isFinite(pLon)) continue;
+
+    lat += pLat;
+    lon += pLon;
+    n += 1;
+    if (n >= 400) break;
+  }
+
+  return n ? { lat: lat / n, lon: lon / n } : null;
+}
+
+// Huella de los filtros para detectar cambios sin aplicar.
+function claveFiltros(f) {
+  return JSON.stringify([
+    f.plan || '',
+    f.prestacion || '',
+    f.detalle || '',
+    f.provincia || '',
+    f.partido || '',
+    f.localidad || '',
+    f.ubicacionUsuario ? `${f.ubicacionUsuario.lat},${f.ubicacionUsuario.lon}` : '',
+    f.radioKm == null ? '' : f.radioKm
+  ]);
+}
 
 const CartillaApp = () => {
   const [selectedPlan, setSelectedPlan] = useState('');
@@ -49,114 +90,124 @@ const CartillaApp = () => {
   const [radioKm, setRadioKm] = useState(null);
   const [mapaAbierto, setMapaAbierto] = useState(false);
 
-  const filtrosActivos = Boolean(
+  // Filtros aplicados: sólo cambian al presionar Buscar.
+  const [busqueda, setBusqueda] = useState(null);
+
+  const hayFiltros = Boolean(
     ubicacionUsuario || selectedPlan || selectedProvincia ||
     selectedPrestacion || selectedDetalle
   );
 
-  // Centro de referencia: la ubicación GPS o, en su defecto, el centro de la localidad elegida.
-  const centroLocalidad = useMemo(() => {
-    if (!selectedLocalidad) return null;
+  const filtrosActuales = {
+    plan: selectedPlan,
+    prestacion: selectedPrestacion,
+    detalle: selectedDetalle,
+    provincia: selectedProvincia,
+    partido: selectedPartido,
+    localidad: selectedLocalidad,
+    ubicacionUsuario,
+    radioKm
+  };
 
-    const loc = norm(selectedLocalidad);
-    const part = norm(selectedPartido);
-    let lat = 0;
-    let lon = 0;
-    let n = 0;
+  // Centro de la localidad elegida (filtros en borrador): habilita los chips de distancia.
+  const centroLocalidad = useMemo(
+    () => calcularCentro(prestadores, selectedLocalidad, selectedPartido),
+    [prestadores, selectedLocalidad, selectedPartido]
+  );
+  const centroDraft = ubicacionUsuario || centroLocalidad;
 
-    for (const p of prestadores) {
-      if (p._localidad !== loc) continue;
-      if (part && p._partido !== part) continue;
+  // Centro de la búsqueda ya aplicada.
+  const centroBusqueda = useMemo(() => {
+    if (!busqueda) return null;
+    if (busqueda.ubicacionUsuario) return busqueda.ubicacionUsuario;
+    return calcularCentro(prestadores, busqueda.localidad, busqueda.partido);
+  }, [prestadores, busqueda]);
 
-      const pLat = parseFloat(p.lat);
-      const pLon = parseFloat(p.lon);
-      if (!Number.isFinite(pLat) || !Number.isFinite(pLon)) continue;
-
-      lat += pLat;
-      lon += pLon;
-      n += 1;
-      if (n >= 400) break;
-    }
-
-    return n ? { lat: lat / n, lon: lon / n } : null;
-  }, [prestadores, selectedLocalidad, selectedPartido]);
-
-  const centro = ubicacionUsuario || centroLocalidad;
-  const conRadio = Boolean(centro) && radioKm != null;
+  const conRadio = busqueda != null && centroBusqueda != null && busqueda.radioKm != null;
 
   // Centro estable para el mapa (evita recrearlo en cada render).
   const centroMapa = useMemo(
     () =>
-      centro
-        ? { lat: centro.lat, lon: centro.lon, esUsuario: Boolean(ubicacionUsuario) }
+      centroBusqueda
+        ? {
+            lat: centroBusqueda.lat,
+            lon: centroBusqueda.lon,
+            esUsuario: Boolean(busqueda && busqueda.ubicacionUsuario)
+          }
         : null,
-    [centro, ubicacionUsuario]
+    [centroBusqueda, busqueda]
   );
 
   const { resultados, radioAplicado } = useMemo(() => {
-    if (!filtrosActivos) return { resultados: [], radioAplicado: null };
+    if (!busqueda) return { resultados: [], radioAplicado: null };
+
+    const ubi = busqueda.ubicacionUsuario;
+    const radioBase = busqueda.radioKm;
 
     const armar = (radio) => {
       let base = prestadores;
 
       // Modo GPS: recortamos por radio real e ignoramos los filtros administrativos.
-      if (ubicacionUsuario && radio != null) {
+      if (ubi && radio != null) {
         base = filtrarPorRadio(base, {
-          lat: ubicacionUsuario.lat,
-          lon: ubicacionUsuario.lon,
+          lat: ubi.lat,
+          lon: ubi.lon,
           radioKm: radio,
-          localidad: ubicacionUsuario.localidad
+          localidad: ubi.localidad
         });
       }
 
       let filas = filtrarPrestadores(base, {
-        plan: selectedPlan,
-        prestacion: selectedPrestacion,
-        detalle: selectedDetalle,
-        provincia: ubicacionUsuario ? '' : selectedProvincia,
-        partido: ubicacionUsuario ? '' : selectedPartido,
-        localidad: ubicacionUsuario ? '' : selectedLocalidad
+        plan: busqueda.plan,
+        prestacion: busqueda.prestacion,
+        detalle: busqueda.detalle,
+        provincia: ubi ? '' : busqueda.provincia,
+        partido: ubi ? '' : busqueda.partido,
+        localidad: ubi ? '' : busqueda.localidad
       });
 
       // Ubicación manual + rango: recortamos alrededor del centro de la localidad.
-      if (!ubicacionUsuario && centro && radio != null) {
+      if (!ubi && centroBusqueda && radio != null) {
         filas = filtrarPorRadio(filas, {
-          lat: centro.lat,
-          lon: centro.lon,
+          lat: centroBusqueda.lat,
+          lon: centroBusqueda.lon,
           radioKm: radio,
-          localidad: selectedLocalidad
+          localidad: busqueda.localidad
         });
       }
 
       return agruparPorPrestador(filas);
     };
 
-    let efectivo = radioKm;
-    let lista = armar(radioKm);
+    let efectivo = radioBase;
+    let lista = armar(radioBase);
 
     // En modo GPS, si hay muy pocos resultados ampliamos de a un escalón.
-    if (ubicacionUsuario && lista.length < 5) {
-      const desde = Math.max(0, RADIOS.indexOf(radioKm));
+    if (ubi && lista.length < 5) {
+      const desde = Math.max(0, RADIOS.indexOf(radioBase));
       for (let i = desde + 1; i < RADIOS.length && lista.length < 5; i += 1) {
         efectivo = RADIOS[i];
         lista = armar(efectivo);
       }
     }
 
-    if (conRadio) {
+    if (centroBusqueda && radioBase != null) {
       lista = [...lista].sort(
         (a, b) => (a.distancia ?? Infinity) - (b.distancia ?? Infinity)
       );
     }
 
-    return { resultados: lista, radioAplicado: conRadio ? efectivo : null };
-  }, [
-    prestadores, filtrosActivos, ubicacionUsuario, centro, conRadio, radioKm,
-    selectedPlan, selectedProvincia, selectedPartido,
-    selectedLocalidad, selectedPrestacion, selectedDetalle
-  ]);
+    return {
+      resultados: lista,
+      radioAplicado: centroBusqueda && radioBase != null ? efectivo : null
+    };
+  }, [prestadores, busqueda, centroBusqueda]);
 
   const resultadosVisibles = resultados.slice(0, LIMITE_RESULTADOS);
+
+  // ¿El usuario tocó filtros después de la última búsqueda?
+  const hayCambiosSinAplicar =
+    busqueda != null && claveFiltros(filtrosActuales) !== claveFiltros(busqueda);
 
   // Búsqueda de seccional con normalización y cascada
 
@@ -252,6 +303,18 @@ const CartillaApp = () => {
       ? guardias || []
       : etiquetas[selectedPrestacion] || [];
 
+  // Aplica los filtros en borrador (botón Buscar).
+  const ejecutarBusqueda = () => {
+    if (!hayFiltros) return;
+    setBusqueda({ ...filtrosActuales });
+  };
+
+  // El rango de distancia se aplica al instante, incluso sobre una búsqueda ya hecha.
+  const cambiarRadio = (r) => {
+    setRadioKm(r);
+    setBusqueda((actual) => (actual ? { ...actual, radioKm: r } : actual));
+  };
+
   const handleClearFilters = () => {
     setSelectedPlan('');
     setSelectedPlanDescripcion('');
@@ -269,6 +332,7 @@ const CartillaApp = () => {
     setAvisoUbicacion('');
     setUbicacionUsuario(null);
     setRadioKm(null);
+    setBusqueda(null);
     setMapaAbierto(false);
   };
 
@@ -290,12 +354,22 @@ const CartillaApp = () => {
         // Modo cercanía: usamos las coordenadas reales en lugar de la localidad exacta.
         const coords = resultado.detectado && resultado.detectado.coords;
         if (coords) {
-          setUbicacionUsuario({
+          const ubicacion = {
             lat: coords.lat,
             lon: coords.lon,
             localidad: resultado.localidad || ''
-          });
+          };
+          setUbicacionUsuario(ubicacion);
           setRadioKm(RADIO_DEFAULT);
+          // "Mi ubicación" dispara la búsqueda directamente.
+          setBusqueda({
+            ...filtrosActuales,
+            provincia: resultado.provincia,
+            partido: resultado.partido,
+            localidad: resultado.localidad,
+            ubicacionUsuario: ubicacion,
+            radioKm: RADIO_DEFAULT
+          });
         }
       } else {
         setAvisoUbicacion(resultado.aviso);
@@ -378,6 +452,15 @@ const CartillaApp = () => {
                         className="cartilla-dropdown-item"
                       >
                         <strong>{plan.nombre}</strong> · {plan.descripcion}
+                        {planesIncluidos(plan.nombre).length > 1 && (
+                          <span className="cartilla-plan-incluye">
+                            incluye{' '}
+                            {planesIncluidos(plan.nombre)
+                              .filter((p) => p !== norm(plan.nombre))
+                              .map((p) => p.toUpperCase())
+                              .join(' e ')}
+                          </span>
+                        )}
                       </button>
                     ))}
                   </div>
@@ -468,6 +551,12 @@ const CartillaApp = () => {
                     setProvinciaSearch('');
                     setProvinciaOpen(true);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      ejecutarBusqueda();
+                    }
+                  }}
                   onBlur={() => setTimeout(() => setProvinciaOpen(false), 150)}
                   className="cartilla-input"
                 />
@@ -499,6 +588,12 @@ const CartillaApp = () => {
                   onFocus={() => {
                     setPartidoSearch('');
                     if (selectedProvincia) setPartidoOpen(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      ejecutarBusqueda();
+                    }
                   }}
                   onBlur={() => setTimeout(() => setPartidoOpen(false), 150)}
                   disabled={!selectedProvincia}
@@ -533,6 +628,12 @@ const CartillaApp = () => {
                     setLocalidadSearch('');
                     if (selectedPartido) setLocalidadOpen(true);
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      ejecutarBusqueda();
+                    }
+                  }}
                   onBlur={() => setTimeout(() => setLocalidadOpen(false), 150)}
                   disabled={!selectedPartido}
                   className="cartilla-input"
@@ -566,9 +667,9 @@ const CartillaApp = () => {
                 {!ubicacionUsuario && (
                   <button
                     type="button"
-                    onClick={() => setRadioKm(null)}
-                    disabled={!centro}
-                    title={centro ? 'Sin límite de distancia' : 'Elegí una localidad o usá tu ubicación'}
+                    onClick={() => cambiarRadio(null)}
+                    disabled={!centroDraft}
+                    title={centroDraft ? 'Sin límite de distancia' : 'Elegí una localidad o usá tu ubicación'}
                     className={`cartilla-radio-btn${radioKm == null ? ' activo' : ''}`}
                   >
                     Sin límite
@@ -578,9 +679,9 @@ const CartillaApp = () => {
                   <button
                     key={r}
                     type="button"
-                    onClick={() => setRadioKm(r)}
-                    disabled={!centro}
-                    title={centro ? `Hasta ${r} km` : 'Elegí una localidad o usá tu ubicación'}
+                    onClick={() => cambiarRadio(r)}
+                    disabled={!centroDraft}
+                    title={centroDraft ? `Hasta ${r} km` : 'Elegí una localidad o usá tu ubicación'}
                     className={`cartilla-radio-btn${r === radioKm ? ' activo' : ''}`}
                   >
                     {r} km
@@ -631,6 +732,15 @@ const CartillaApp = () => {
             <button onClick={handleClearFilters} className="cartilla-btn-limpiar">
               🗑️ Limpiar filtros
             </button>
+
+            <button
+              onClick={ejecutarBusqueda}
+              disabled={!hayFiltros}
+              className="cartilla-btn-buscar"
+              title={hayFiltros ? 'Buscar prestadores' : 'Elegí al menos un filtro'}
+            >
+              🔍 Buscar
+            </button>
           </div>
         </div>
 
@@ -638,8 +748,20 @@ const CartillaApp = () => {
           <div className="cartilla-aviso-ubicacion">⚠️ {avisoUbicacion}</div>
         )}
 
+        {hayCambiosSinAplicar && (
+          <div className="cartilla-cambios">
+            Cambiaste los filtros. Presioná <strong>Buscar</strong> para actualizar los resultados.
+          </div>
+        )}
+
+        {!busqueda && hayFiltros && (
+          <div className="cartilla-hint-buscar">
+            Filtros listos. Presioná <strong>🔍 Buscar</strong> para ver los prestadores.
+          </div>
+        )}
+
         {/* Resultados */}
-        {filtrosActivos && (
+        {busqueda && (
           <div className="cartilla-resultados">
             {cargando && <p className="cartilla-aviso">Cargando cartilla de prestadores...</p>}
             {error && <p className="cartilla-aviso cartilla-aviso-error">{error}</p>}
@@ -666,9 +788,10 @@ const CartillaApp = () => {
                   </div>
                 </div>
 
-                {conRadio && radioAplicado > radioKm && (
+                {conRadio && radioAplicado > busqueda.radioKm && (
                   <p className="cartilla-aviso">
-                    Había pocos resultados a {radioKm} km, así que ampliamos el radio a {radioAplicado} km.
+                    Había pocos resultados a {busqueda.radioKm} km, así que ampliamos el radio a{' '}
+                    {radioAplicado} km.
                   </p>
                 )}
 

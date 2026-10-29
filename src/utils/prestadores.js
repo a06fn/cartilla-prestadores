@@ -81,11 +81,29 @@ export function prepararPrestador(p) {
   };
 }
 
+// Jerarquía de planes: cada uno incluye a los de menor cobertura.
+// Universal ⊂ Intermedio ⊂ Superador
+const PLANES_INCLUIDOS = {
+  universal: ['universal'],
+  intermedio: ['universal', 'intermedio'],
+  superador: ['universal', 'intermedio', 'superador'],
+};
+
+// Planes (normalizados) que cubre el plan elegido.
+export function planesIncluidos(plan) {
+  const clave = norm(plan);
+  return PLANES_INCLUIDOS[clave] || [clave];
+}
+
 export function filtrarPrestadores(filas, filtros) {
   const { plan, provincia, partido, localidad, prestacion, detalle } = filtros;
 
   return filas.filter((p) => {
-    if (plan && p._plan !== norm(plan)) return false;
+    // Un plan superior incluye la cobertura de los inferiores.
+    if (plan) {
+      const permitidos = planesIncluidos(plan);
+      if (!permitidos.includes(p._plan)) return false;
+    }
 
     // "GUARDIA" es una prestación más: se filtra igual que el resto.
     if (prestacion) {
