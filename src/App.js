@@ -7,7 +7,7 @@ import { etiquetas } from './data/etiquetas';
 import { detectarMiUbicacion } from './utils/geolocalizacion';
 import { guardias } from './data/guardias'; 
 import { usePrestadores } from './hooks/usePrestadores';
-import { norm, planesIncluidos, filtrarPrestadores, agruparPorPrestador, filtrarPorRadio } from './utils/prestadores';
+import { norm, filtrarPrestadores, agruparPorPrestador, filtrarPorRadio } from './utils/prestadores';
 import MapaPrestadores from './components/MapaPrestadores';
 
 const LIMITE_RESULTADOS = 50;
@@ -425,119 +425,6 @@ const CartillaApp = () => {
         {/* Filtros */}
         <div className="cartilla-filtros">
           <div className="cartilla-filtros-grid">
-            {/* Plan */}
-            <div className="cartilla-campo cartilla-campo-plan">
-              <label className="cartilla-label">Plan</label>
-              <div className="cartilla-input-wrapper">
-                <button
-                  onClick={() => setPlanOpen(!planOpen)}
-                  onBlur={() => setTimeout(() => setPlanOpen(false), 150)}
-                  className="cartilla-dropdown-button"
-                  title={selectedPlanDescripcion || ''}
-                >
-                  {selectedPlan
-                    ? `${selectedPlan} · ${selectedPlanDescripcion || ''}`
-                    : 'Seleccionar plan'}
-                </button>
-                {planOpen && (
-                  <div className="cartilla-dropdown-menu">
-                    {planes.map((plan) => (
-                      <button
-                        key={plan.nombre}
-                        onClick={() => {
-                          setSelectedPlan(plan.nombre);
-                          setSelectedPlanDescripcion(plan.descripcion);
-                          setPlanOpen(false);
-                        }}
-                        className="cartilla-dropdown-item"
-                      >
-                        <strong>{plan.nombre}</strong> · {plan.descripcion}
-                        {planesIncluidos(plan.nombre).length > 1 && (
-                          <span className="cartilla-plan-incluye">
-                            incluye{' '}
-                            {planesIncluidos(plan.nombre)
-                              .filter((p) => p !== norm(plan.nombre))
-                              .map((p) => p.toUpperCase())
-                              .join(' e ')}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Prestación (incluye GUARDIA) */}
-            <div className="cartilla-campo cartilla-campo-prestacion">
-              <label className="cartilla-label">Prestación</label>
-              <div className="cartilla-input-wrapper">
-                <button
-                  onClick={() => setPrestacionOpen(!prestacionOpen)}
-                  onBlur={() => setTimeout(() => setPrestacionOpen(false), 150)}
-                  className={`cartilla-dropdown-button${
-                    selectedPrestacion === 'GUARDIA' ? ' cartilla-button-guardia-activa' : ''
-                  }`}
-                >
-                  {selectedPrestacion || 'Seleccionar prestación'}
-                </button>
-                {prestacionOpen && (
-                  <div className="cartilla-dropdown-menu">
-                    {Array.isArray(filteredPrestaciones) && filteredPrestaciones.map((prest) => {
-                      const nombre = typeof prest === 'object' ? prest.nombre : prest;
-                      return (
-                        <button
-                          key={nombre}
-                          onClick={() => {
-                            setSelectedPrestacion(nombre);
-                            setSelectedDetalle('');
-                            setPrestacionOpen(false);
-                          }}
-                          className={`cartilla-dropdown-item${
-                            nombre === 'GUARDIA' ? ' cartilla-dropdown-item-guardia' : ''
-                          }`}
-                        >
-                          {nombre === 'GUARDIA' ? '🛡️ GUARDIA' : nombre}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Detalle */}
-            <div className="cartilla-campo cartilla-campo-detalle">
-              <label className="cartilla-label">Detalle</label>
-              <div className="cartilla-input-wrapper">
-                <button
-                  onClick={() => selectedPrestacion && setDetalleOpen(!detalleOpen)}
-                  onBlur={() => setTimeout(() => setDetalleOpen(false), 150)}
-                  disabled={!selectedPrestacion}
-                  className="cartilla-dropdown-button"
-                >
-                  {selectedDetalle ||
-                    (selectedPrestacion === 'GUARDIA' ? 'Seleccionar guardia' : 'Seleccionar detalle')}
-                </button>
-                {detalleOpen && selectedPrestacion && (
-                  <div className="cartilla-dropdown-menu">
-                    {Array.isArray(filteredDetalles) && filteredDetalles.map((det) => (
-                      <button
-                        key={typeof det === 'object' ? det.nombre : det}
-                        onClick={() => {
-                          setSelectedDetalle(typeof det === 'object' ? det.nombre : det);
-                          setDetalleOpen(false);
-                        }}
-                        className="cartilla-dropdown-item"
-                      >
-                        {typeof det === 'object' ? det.nombre : det}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
             {/* Provincia */}
             <div className="cartilla-campo cartilla-campo-provincia">
               <label className="cartilla-label">Provincia</label>
@@ -577,87 +464,213 @@ const CartillaApp = () => {
             </div>
 
             {/* Partido */}
-            <div className="cartilla-campo cartilla-campo-partido">
-              <label className="cartilla-label">Partido</label>
-              <div className="cartilla-input-wrapper">
-                <input
-                  type="text"
-                  placeholder="Seleccionar partido..."
-                  value={partidoOpen ? partidoSearch : selectedPartido}
-                  onChange={(e) => setPartidoSearch(e.target.value)}
-                  onFocus={() => {
-                    setPartidoSearch('');
-                    if (selectedProvincia) setPartidoOpen(true);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      ejecutarBusqueda();
-                    }
-                  }}
-                  onBlur={() => setTimeout(() => setPartidoOpen(false), 150)}
-                  disabled={!selectedProvincia}
-                  className="cartilla-input"
-                />
-                {partidoOpen && selectedProvincia && (
-                  <div className="cartilla-dropdown-menu">
-                    {filteredPartido.map((part) => (
-                      <button
-                        key={part}
-                        onClick={() => handlePartidoSelect(part)}
-                        className="cartilla-dropdown-item"
-                      >
-                        {part}
-                      </button>
-                    ))}
-                  </div>
-                )}
+            {(selectedProvincia || selectedPartido) && (
+              <div className="cartilla-campo cartilla-campo-partido cartilla-campo-aparece">
+                <label className="cartilla-label">Partido</label>
+                <div className="cartilla-input-wrapper">
+                  <input
+                    type="text"
+                    placeholder="Seleccionar partido..."
+                    value={partidoOpen ? partidoSearch : selectedPartido}
+                    onChange={(e) => setPartidoSearch(e.target.value)}
+                    onFocus={() => {
+                      setPartidoSearch('');
+                      if (selectedProvincia) setPartidoOpen(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        ejecutarBusqueda();
+                      }
+                    }}
+                    onBlur={() => setTimeout(() => setPartidoOpen(false), 150)}
+                    disabled={!selectedProvincia}
+                    className="cartilla-input"
+                  />
+                  {partidoOpen && selectedProvincia && (
+                    <div className="cartilla-dropdown-menu">
+                      {filteredPartido.map((part) => (
+                        <button
+                          key={part}
+                          onClick={() => handlePartidoSelect(part)}
+                          className="cartilla-dropdown-item"
+                        >
+                          {part}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Localidad */}
-            <div className="cartilla-campo cartilla-campo-localidad">
-              <label className="cartilla-label">Localidad</label>
-              <div className="cartilla-input-wrapper">
-                <input
-                  type="text"
-                  placeholder="Seleccionar localidad..."
-                  value={localidadOpen ? localidadSearch : selectedLocalidad}
-                  onChange={(e) => setLocalidadSearch(e.target.value)}
-                  onFocus={() => {
-                    setLocalidadSearch('');
-                    if (selectedPartido) setLocalidadOpen(true);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      ejecutarBusqueda();
-                    }
-                  }}
-                  onBlur={() => setTimeout(() => setLocalidadOpen(false), 150)}
-                  disabled={!selectedPartido}
-                  className="cartilla-input"
-                />
-                {localidadOpen && selectedPartido && (
-                  <div className="cartilla-dropdown-menu">
-                    {filteredLocalidad.map((loc) => (
-                      <button
-                        key={loc}
-                        onClick={() => {
-                          salirDeModoGps();
-                          setSelectedLocalidad(loc);
-                          setLocalidadOpen(false);
-                          setLocalidadSearch('');
-                          setAvisoUbicacion('');
-                        }}
-                        className="cartilla-dropdown-item"
-                      >
-                        {loc}
-                      </button>
-                    ))}
-                  </div>
-                )}
+            {(selectedPartido || selectedLocalidad) && (
+              <div className="cartilla-campo cartilla-campo-localidad cartilla-campo-aparece">
+                <label className="cartilla-label">Localidad</label>
+                <div className="cartilla-input-wrapper">
+                  <input
+                    type="text"
+                    placeholder="Seleccionar localidad..."
+                    value={localidadOpen ? localidadSearch : selectedLocalidad}
+                    onChange={(e) => setLocalidadSearch(e.target.value)}
+                    onFocus={() => {
+                      setLocalidadSearch('');
+                      if (selectedPartido) setLocalidadOpen(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        ejecutarBusqueda();
+                      }
+                    }}
+                    onBlur={() => setTimeout(() => setLocalidadOpen(false), 150)}
+                    disabled={!selectedPartido}
+                    className="cartilla-input"
+                  />
+                  {localidadOpen && selectedPartido && (
+                    <div className="cartilla-dropdown-menu">
+                      {filteredLocalidad.map((loc) => (
+                        <button
+                          key={loc}
+                          onClick={() => {
+                            salirDeModoGps();
+                            setSelectedLocalidad(loc);
+                            setLocalidadOpen(false);
+                            setLocalidadSearch('');
+                            setAvisoUbicacion('');
+                          }}
+                          className="cartilla-dropdown-item"
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
+            )}
+
+            {/* Plan */}
+            {(selectedLocalidad || selectedPlan) && (
+              <div className="cartilla-campo cartilla-campo-plan cartilla-campo-aparece">
+                <label className="cartilla-label">Plan</label>
+                <div className="cartilla-input-wrapper">
+                  <button
+                    onClick={() => setPlanOpen(!planOpen)}
+                    onBlur={() => setTimeout(() => setPlanOpen(false), 150)}
+                    className="cartilla-dropdown-button"
+                    title={selectedPlanDescripcion || ''}
+                  >
+                    {selectedPlan
+                      ? `${selectedPlan} · ${selectedPlanDescripcion || ''}`
+                      : 'Seleccionar plan'}
+                  </button>
+                  {planOpen && (
+                    <div className="cartilla-dropdown-menu">
+                      {planes.map((plan) => (
+                        <button
+                          key={plan.nombre}
+                          onClick={() => {
+                            setSelectedPlan(plan.nombre);
+                            setSelectedPlanDescripcion(plan.descripcion);
+                            setPlanOpen(false);
+                          }}
+                          className="cartilla-dropdown-item"
+                        >
+                          <strong>{plan.nombre}</strong> · {plan.descripcion}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Prestación (incluye GUARDIA) */}
+            {(selectedPlan || selectedPrestacion) && (
+              <div className="cartilla-campo cartilla-campo-prestacion cartilla-campo-aparece">
+                <label className="cartilla-label">Prestación</label>
+                <div className="cartilla-input-wrapper">
+                  <button
+                    onClick={() => setPrestacionOpen(!prestacionOpen)}
+                    onBlur={() => setTimeout(() => setPrestacionOpen(false), 150)}
+                    className={`cartilla-dropdown-button${
+                      selectedPrestacion === 'GUARDIA' ? ' cartilla-button-guardia-activa' : ''
+                    }`}
+                  >
+                    {selectedPrestacion || 'Seleccionar prestación'}
+                  </button>
+                  {prestacionOpen && (
+                    <div className="cartilla-dropdown-menu">
+                      {Array.isArray(filteredPrestaciones) && filteredPrestaciones.map((prest) => {
+                        const nombre = typeof prest === 'object' ? prest.nombre : prest;
+                        return (
+                          <button
+                            key={nombre}
+                            onClick={() => {
+                              setSelectedPrestacion(nombre);
+                              setSelectedDetalle('');
+                              setPrestacionOpen(false);
+                            }}
+                            className={`cartilla-dropdown-item${
+                              nombre === 'GUARDIA' ? ' cartilla-dropdown-item-guardia' : ''
+                            }`}
+                          >
+                            {nombre === 'GUARDIA' ? '🛡️ GUARDIA' : nombre}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Detalle */}
+            {(selectedPrestacion || selectedDetalle) && (
+              <div className="cartilla-campo cartilla-campo-detalle cartilla-campo-aparece">
+                <label className="cartilla-label">Detalle</label>
+                <div className="cartilla-input-wrapper">
+                  <button
+                    onClick={() => selectedPrestacion && setDetalleOpen(!detalleOpen)}
+                    onBlur={() => setTimeout(() => setDetalleOpen(false), 150)}
+                    disabled={!selectedPrestacion}
+                    className="cartilla-dropdown-button"
+                  >
+                    {selectedDetalle ||
+                      (selectedPrestacion === 'GUARDIA' ? 'Seleccionar guardia' : 'Seleccionar detalle')}
+                  </button>
+                  {detalleOpen && selectedPrestacion && (
+                    <div className="cartilla-dropdown-menu">
+                      {Array.isArray(filteredDetalles) && filteredDetalles.map((det) => (
+                        <button
+                          key={typeof det === 'object' ? det.nombre : det}
+                          onClick={() => {
+                            setSelectedDetalle(typeof det === 'object' ? det.nombre : det);
+                            setDetalleOpen(false);
+                          }}
+                          className="cartilla-dropdown-item"
+                        >
+                          {typeof det === 'object' ? det.nombre : det}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Mi ubicación */}
+            <div className="cartilla-campo cartilla-campo-ubicacion">
+              <label className="cartilla-label">Ubicación</label>
+              <button
+                className="cartilla-btn-ubicacion"
+                onClick={handleMiUbicacion}
+                disabled={cargandoUbicacion}
+              >
+                {cargandoUbicacion ? '⏳ Buscando…' : '📍 Mi ubicación'}
+              </button>
             </div>
 
             {/* Distancia */}
@@ -688,18 +701,6 @@ const CartillaApp = () => {
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Mi ubicación */}
-            <div className="cartilla-campo cartilla-campo-ubicacion">
-              <label className="cartilla-label">Ubicación</label>
-              <button
-                className="cartilla-btn-ubicacion"
-                onClick={handleMiUbicacion}
-                disabled={cargandoUbicacion}
-              >
-                {cargandoUbicacion ? '⏳ Buscando…' : '📍 Mi ubicación'}
-              </button>
             </div>
           </div>
 
@@ -757,6 +758,12 @@ const CartillaApp = () => {
         {!busqueda && hayFiltros && (
           <div className="cartilla-hint-buscar">
             Filtros listos. Presioná <strong>🔍 Buscar</strong> para ver los prestadores.
+          </div>
+        )}
+
+        {!busqueda && !hayFiltros && (
+          <div className="cartilla-hint-buscar">
+            Empezá eligiendo una <strong>provincia</strong> o usá <strong>📍 Mi ubicación</strong>.
           </div>
         )}
 
