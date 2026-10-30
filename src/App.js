@@ -1,45 +1,26 @@
 import React, { useState, useMemo } from 'react';
 import './App.css';
 import { planes } from './data/planes';
-import { geografia } from './data/geografia';
 import { seccionales } from './data/seccionales';
 import { etiquetas } from './data/etiquetas';
-import { detectarMiUbicacion } from './utils/geolocalizacion';
+import { obtenerCoordenadas } from './utils/geolocalizacion';
 import { guardias } from './data/guardias'; 
 import { usePrestadores } from './hooks/usePrestadores';
-import { norm, filtrarPrestadores, agruparPorPrestador, filtrarPorRadio } from './utils/prestadores';
+import {
+  norm,
+  filtrarPrestadores,
+  agruparPorPrestador,
+  filtrarPorDistancia,
+  filtrarPorSeccional,
+} from './utils/prestadores';
+import { construirGrupos, centroDeGrupo, sedesConCoords } from './utils/seccionales';
 import MapaPrestadores from './components/MapaPrestadores';
 
 const LIMITE_RESULTADOS = 50;
+// En modo seccional el valor por defecto es "Sin límite" (null).
+// Con geolocalización se arranca en 20 km alrededor de la coordenada.
 const RADIO_DEFAULT = 20;
 const RADIOS = [1, 5, 20, 50];
-
-// Centro geográfico (promedio de coordenadas) de una localidad.
-function calcularCentro(filas, localidad, partido) {
-  if (!localidad) return null;
-
-  const loc = norm(localidad);
-  const part = norm(partido);
-  let lat = 0;
-  let lon = 0;
-  let n = 0;
-
-  for (const p of filas) {
-    if (p._localidad !== loc) continue;
-    if (part && p._partido !== part) continue;
-
-    const pLat = parseFloat(p.lat);
-    const pLon = parseFloat(p.lon);
-    if (!Number.isFinite(pLat) || !Number.isFinite(pLon)) continue;
-
-    lat += pLat;
-    lon += pLon;
-    n += 1;
-    if (n >= 400) break;
-  }
-
-  return n ? { lat: lat / n, lon: lon / n } : null;
-}
 
 // Huella de los filtros para detectar cambios sin aplicar.
 function claveFiltros(f) {
@@ -47,37 +28,27 @@ function claveFiltros(f) {
     f.plan || '',
     f.prestacion || '',
     f.detalle || '',
-    f.provincia || '',
-    f.partido || '',
-    f.localidad || '',
+    f.seccional || '',
     f.ubicacionUsuario ? `${f.ubicacionUsuario.lat},${f.ubicacionUsuario.lon}` : '',
     f.radioKm == null ? '' : f.radioKm
   ]);
 }
 
 const CartillaApp = () => {
+  const [selectedSeccional, setSelectedSeccional] = useState('');
+  const [seccionalSearch, setSeccionalSearch] = useState('');
+  const [seccionalOpen, setSeccionalOpen] = useState(false);
+  const [sedesAbiertas, setSedesAbiertas] = useState(false);
+
   const [selectedPlan, setSelectedPlan] = useState('');
   const [selectedPlanDescripcion, setSelectedPlanDescripcion] = useState('');
   const [planOpen, setPlanOpen] = useState(false);
-  const [selectedProvincia, setSelectedProvincia] = useState('');
-  const [selectedPartido, setSelectedPartido] = useState('');
-  const [selectedLocalidad, setSelectedLocalidad] = useState('');
   const [selectedPrestacion, setSelectedPrestacion] = useState('');
   const [selectedDetalle, setSelectedDetalle] = useState('');
-  
-  const [provinciaSearch, setProvinciaSearch] = useState('');
-  const [partidoSearch, setPartidoSearch] = useState('');
-  const [localidadSearch, setLocalidadSearch] = useState('');
-  
-  const [provinciaOpen, setProvinciaOpen] = useState(false);
-  const [partidoOpen, setPartidoOpen] = useState(false);
-  const [localidadOpen, setLocalidadOpen] = useState(false);
+
   const [prestacionOpen, setPrestacionOpen] = useState(false);
   const [detalleOpen, setDetalleOpen] = useState(false);
-  
-  const [partidosDisponibles, setPartidosDisponibles] = useState([]);
-  const [localidadesDisponibles, setLocalidadesDisponibles] = useState([]);
-  
+
   const [cargandoUbicacion, setCargandoUbicacion] = useState(false);
   const [avisoUbicacion, setAvisoUbicacion] = useState('');
   const containerRef = React.useRef(null);
@@ -93,88 +64,138 @@ const CartillaApp = () => {
   // Filtros aplicados: sólo cambian al presionar Buscar.
   const [busqueda, setBusqueda] = useState(null);
 
-  const hayFiltros = Boolean(
-    ubicacionUsuario || selectedPlan || selectedProvincia ||
-    selectedPrestacion || selectedDetalle
-  );
+  // Para poder buscar hace falta una ubicación (seccional o GPS) y la
+  // prestación elegida. El detalle es opcional.
+  const hayUbicacion = Boolean(selectedSeccional || ubicacionUsuario);
+  const busquedaLista = Boolean(hayUbicacion && selectedPrestacion);
 
   const filtrosActuales = {
     plan: selectedPlan,
     prestacion: selectedPrestacion,
     detalle: selectedDetalle,
-    provincia: selectedProvincia,
-    partido: selectedPartido,
-    localidad: selectedLocalidad,
+    seccional: selectedSeccional ? norm(selectedSeccional) : '',
     ubicacionUsuario,
     radioKm
   };
 
-  // Centro de la localidad elegida (filtros en borrador): habilita los chips de distancia.
-  const centroLocalidad = useMemo(
-    () => calcularCentro(prestadores, selectedLocalidad, selectedPartido),
-    [prestadores, selectedLocalidad, selectedPartido]
+  // Seccionales seleccionables: las que aparecen en la cartilla + las sedes
+  // del listado que no estén agrupadas en otra.
+  const gruposSeccional = useMemo(
+    () => construirGrupos(prestadores, seccionales),
+    [prestadores]
   );
-  const centroDraft = ubicacionUsuario || centroLocalidad;
 
-  // Centro de la búsqueda ya aplicada.
-  const centroBusqueda = useMemo(() => {
-    if (!busqueda) return null;
-    if (busqueda.ubicacionUsuario) return busqueda.ubicacionUsuario;
-    return calcularCentro(prestadores, busqueda.localidad, busqueda.partido);
-  }, [prestadores, busqueda]);
+  const grupoSeleccionado = useMemo(() => {
+    if (!selectedSeccional) return null;
+    const clave = norm(selectedSeccional);
+    return gruposSeccional.find((g) => g.clave === clave) || null;
+  }, [gruposSeccional, selectedSeccional]);
 
-  const conRadio = busqueda != null && centroBusqueda != null && busqueda.radioKm != null;
+  const filteredSeccional = useMemo(() => {
+    const consulta = norm(seccionalSearch);
+    if (!consulta) return gruposSeccional;
+    return gruposSeccional.filter((g) => {
+      const texto = [
+        g.etiqueta,
+        ...g.sedes.map((s) => `${s['NOMBRE SECCIONAL'] || ''} ${s.LOCALIDAD || ''}`)
+      ].join(' ');
+      return norm(texto).includes(consulta);
+    });
+  }, [gruposSeccional, seccionalSearch]);
 
-  // Centro estable para el mapa (evita recrearlo en cada render).
-  const centroMapa = useMemo(
+  // Centro de la seccional elegida (o de la ubicación GPS): habilita los chips de distancia.
+  const centroDraft = useMemo(
     () =>
-      centroBusqueda
-        ? {
-            lat: centroBusqueda.lat,
-            lon: centroBusqueda.lon,
-            esUsuario: Boolean(busqueda && busqueda.ubicacionUsuario)
-          }
-        : null,
-    [centroBusqueda, busqueda]
+      ubicacionUsuario ||
+      (grupoSeleccionado ? centroDeGrupo(grupoSeleccionado, prestadores) : null),
+    [ubicacionUsuario, grupoSeleccionado, prestadores]
   );
+
+  // Seccional ya aplicada en la búsqueda.
+  const grupoBusqueda = useMemo(() => {
+    if (!busqueda || !busqueda.seccional) return null;
+    return gruposSeccional.find((g) => g.clave === busqueda.seccional) || null;
+  }, [busqueda, gruposSeccional]);
+
+  // Centros estables para el mapa (evita recrearlo en cada render).
+  const centrosMapa = useMemo(() => {
+    if (!busqueda) return [];
+
+    const ubi = busqueda.ubicacionUsuario;
+    if (ubi) {
+      const precision = Number.isFinite(ubi.precision)
+        ? `±${Math.round(ubi.precision)} m`
+        : '';
+      return [
+        {
+          lat: ubi.lat,
+          lon: ubi.lon,
+          titulo: 'Tu ubicación',
+          detalle: precision,
+          esUsuario: true
+        }
+      ];
+    }
+
+    if (!grupoBusqueda) return [];
+
+    const sedes = sedesConCoords(grupoBusqueda);
+    if (sedes.length) {
+      return sedes.map((sede) => ({
+        lat: sede.lat,
+        lon: sede.lon,
+        titulo: `${sede['NOMBRE SECCIONAL'] || 'Seccional'} (${sede.SECCIONAL})`,
+        detalle: [sede.DIRECCION, sede.LOCALIDAD].filter(Boolean).join(' · '),
+        telefono: sede.TELEFONO
+      }));
+    }
+
+    const centro = centroDeGrupo(grupoBusqueda, prestadores);
+    return centro
+      ? [
+          {
+            lat: centro.lat,
+            lon: centro.lon,
+            titulo: `${grupoBusqueda.etiqueta} · centro estimado`
+          }
+        ]
+      : [];
+  }, [busqueda, grupoBusqueda, prestadores]);
 
   const { resultados, radioAplicado } = useMemo(() => {
     if (!busqueda) return { resultados: [], radioAplicado: null };
 
     const ubi = busqueda.ubicacionUsuario;
     const radioBase = busqueda.radioKm;
+    const grupo = busqueda.seccional
+      ? gruposSeccional.find((g) => g.clave === busqueda.seccional) || null
+      : null;
+
+    // Puntos de referencia: la ubicación GPS o las sedes de la seccional.
+    const centros = ubi
+      ? [ubi]
+      : grupo
+        ? sedesConCoords(grupo).length
+          ? sedesConCoords(grupo)
+          : [centroDeGrupo(grupo, prestadores)].filter(Boolean)
+        : [];
 
     const armar = (radio) => {
       let base = prestadores;
 
-      // Modo GPS: recortamos por radio real e ignoramos los filtros administrativos.
-      if (ubi && radio != null) {
-        base = filtrarPorRadio(base, {
-          lat: ubi.lat,
-          lon: ubi.lon,
-          radioKm: radio,
-          localidad: ubi.localidad
-        });
+      if (radio != null && centros.length) {
+        // Cercanía: dentro del radio de alguna sede (o de la ubicación GPS).
+        base = filtrarPorDistancia(base, centros, radio);
+      } else if (grupo) {
+        // "Sin límite": todos los prestadores de la seccional.
+        base = filtrarPorSeccional(base, grupo.nombres);
       }
 
-      let filas = filtrarPrestadores(base, {
+      const filas = filtrarPrestadores(base, {
         plan: busqueda.plan,
         prestacion: busqueda.prestacion,
-        detalle: busqueda.detalle,
-        provincia: ubi ? '' : busqueda.provincia,
-        partido: ubi ? '' : busqueda.partido,
-        localidad: ubi ? '' : busqueda.localidad
+        detalle: busqueda.detalle
       });
-
-      // Ubicación manual + rango: recortamos alrededor del centro de la localidad.
-      if (!ubi && centroBusqueda && radio != null) {
-        filas = filtrarPorRadio(filas, {
-          lat: centroBusqueda.lat,
-          lon: centroBusqueda.lon,
-          radioKm: radio,
-          localidad: busqueda.localidad
-        });
-      }
 
       return agruparPorPrestador(filas);
     };
@@ -182,16 +203,17 @@ const CartillaApp = () => {
     let efectivo = radioBase;
     let lista = armar(radioBase);
 
-    // En modo GPS, si hay muy pocos resultados ampliamos de a un escalón.
+    // En modo GPS, si hay muy pocos resultados ampliamos al siguiente escalón.
     if (ubi && lista.length < 5) {
-      const desde = Math.max(0, RADIOS.indexOf(radioBase));
-      for (let i = desde + 1; i < RADIOS.length && lista.length < 5; i += 1) {
-        efectivo = RADIOS[i];
-        lista = armar(efectivo);
+      const superiores = RADIOS.filter((r) => r > (radioBase ?? 0));
+      for (const r of superiores) {
+        if (lista.length >= 5) break;
+        efectivo = r;
+        lista = armar(r);
       }
     }
 
-    if (centroBusqueda && radioBase != null) {
+    if (centros.length && radioBase != null) {
       lista = [...lista].sort(
         (a, b) => (a.distancia ?? Infinity) - (b.distancia ?? Infinity)
       );
@@ -199,9 +221,11 @@ const CartillaApp = () => {
 
     return {
       resultados: lista,
-      radioAplicado: centroBusqueda && radioBase != null ? efectivo : null
+      radioAplicado: centros.length && radioBase != null ? efectivo : null
     };
-  }, [prestadores, busqueda, centroBusqueda]);
+  }, [prestadores, busqueda, gruposSeccional]);
+
+  const conRadio = radioAplicado != null;
 
   const resultadosVisibles = resultados.slice(0, LIMITE_RESULTADOS);
 
@@ -209,92 +233,32 @@ const CartillaApp = () => {
   const hayCambiosSinAplicar =
     busqueda != null && claveFiltros(filtrosActuales) !== claveFiltros(busqueda);
 
-  // Búsqueda de seccional con normalización y cascada
-
-  // Paso 1: obtener el código de seccional desde geografia
-  const codigoSeccional = useMemo(() => {
-    if (!selectedProvincia || !selectedPartido || !selectedLocalidad) return '';
-
-    const fila = geografia.find((g) =>
-      norm(g.provincia) === norm(selectedProvincia) &&
-      norm(g.partido) === norm(selectedPartido) &&
-      norm(g.localidad) === norm(selectedLocalidad)
-    );
-
-    return fila ? fila.seccional : '';
-  }, [selectedProvincia, selectedPartido, selectedLocalidad]);
-
-  // Paso 2: buscar en seccionales por el campo SECCIONAL
-  const seccionalEncontrada = useMemo(() => {
-    if (!codigoSeccional) return null;
-    const lista = Array.isArray(seccionales) ? seccionales : [];
-    return lista.find((item) => norm(item.SECCIONAL) === norm(codigoSeccional)) || null;
-  }, [codigoSeccional]);
-
-  const ubicacionCompleta = Boolean(selectedProvincia && selectedPartido && selectedLocalidad);
-
-  // Obtener provincias únicas
-  const provincias = [...new Set(geografia.map(g => g.provincia))].sort();
-  const filteredProvincia = provincias.filter(p =>
-    p.toLowerCase().includes(provinciaSearch.toLowerCase())
-  );
-
-  // Funciones auxiliares para calcular partidos y localidades
-  const calcularPartidos = (prov) => {
-    return [...new Set(
-      geografia
-        .filter(g => g.provincia === prov)
-        .map(g => g.partido)
-    )].sort();
-  };
-
-  const calcularLocalidades = (prov, part) => {
-    return [...new Set(
-      geografia
-        .filter(g => g.provincia === prov && g.partido === part)
-        .map(g => g.localidad)
-    )].sort();
-  };
-
-  // Al salir del modo GPS volvemos a "sin límite" (la localidad manual no filtra por defecto).
-  const salirDeModoGps = () => {
-    if (ubicacionUsuario) {
-      setUbicacionUsuario(null);
-      setRadioKm(null);
+  // Mensaje cuando no hay resultados, según el modo de búsqueda.
+  const mensajeVacio = (() => {
+    if (!busqueda) return '';
+    if (busqueda.ubicacionUsuario) {
+      return `No hay prestadores a ${busqueda.radioKm} km de tu ubicación.`;
     }
-  };
+    if (grupoBusqueda) {
+      return busqueda.radioKm == null
+        ? `No hay prestadores en la seccional ${grupoBusqueda.etiqueta} con los filtros elegidos.`
+        : `No hay prestadores a ${busqueda.radioKm} km de la seccional ${grupoBusqueda.etiqueta} con los filtros elegidos.`;
+    }
+    return 'No se encontraron prestadores para los filtros seleccionados.';
+  })();
 
-  // Obtener partidos cuando selecciona provincia
-  const handleProvinciaSelect = (prov) => {
-    salirDeModoGps();
-    setSelectedProvincia(prov);
-    setProvinciaOpen(false);
-    setProvinciaSearch('');
-    setSelectedPartido('');
-    setSelectedLocalidad('');
-    setPartidosDisponibles(calcularPartidos(prov));
-    setLocalidadesDisponibles([]);
+  // Al elegir una seccional salimos del modo GPS.
+  const handleSeccionalSelect = (clave) => {
+    const veniaDeGps = Boolean(ubicacionUsuario);
+    setSelectedSeccional(clave);
+    setSeccionalOpen(false);
+    setSeccionalSearch('');
+    setSedesAbiertas(false);
     setAvisoUbicacion('');
+    setUbicacionUsuario(null);
+    // En modo seccional el rango por defecto es "Sin límite".
+    if (veniaDeGps) setRadioKm(null);
   };
-
-  const filteredPartido = partidosDisponibles.filter(p =>
-    p.toLowerCase().includes(partidoSearch.toLowerCase())
-  );
-
-  // Obtener localidades cuando selecciona partido
-  const handlePartidoSelect = (part) => {
-    salirDeModoGps();
-    setSelectedPartido(part);
-    setPartidoOpen(false);
-    setPartidoSearch('');
-    setSelectedLocalidad('');
-    setLocalidadesDisponibles(calcularLocalidades(selectedProvincia, part));
-    setAvisoUbicacion('');
-  };
-
-  const filteredLocalidad = localidadesDisponibles.filter(l =>
-    l.toLowerCase().includes(localidadSearch.toLowerCase())
-  );
 
   const filteredPrestaciones = ['GUARDIA', ...(etiquetas.PRESTACION || [])];
   const filteredDetalles = !selectedPrestacion
@@ -305,7 +269,7 @@ const CartillaApp = () => {
 
   // Aplica los filtros en borrador (botón Buscar).
   const ejecutarBusqueda = () => {
-    if (!hayFiltros) return;
+    if (!busquedaLista) return;
     setBusqueda({ ...filtrosActuales });
   };
 
@@ -319,16 +283,12 @@ const CartillaApp = () => {
     setSelectedPlan('');
     setSelectedPlanDescripcion('');
     setPlanOpen(false);
-    setSelectedProvincia('');
-    setSelectedPartido('');
-    setSelectedLocalidad('');
+    setSelectedSeccional('');
+    setSeccionalOpen(false);
+    setSeccionalSearch('');
+    setSedesAbiertas(false);
     setSelectedPrestacion('');
     setSelectedDetalle('');
-    setPartidosDisponibles([]);
-    setLocalidadesDisponibles([]);
-    setProvinciaSearch('');
-    setPartidoSearch('');
-    setLocalidadSearch('');
     setAvisoUbicacion('');
     setUbicacionUsuario(null);
     setRadioKm(null);
@@ -340,42 +300,36 @@ const CartillaApp = () => {
   const handleMiUbicacion = async () => {
     setCargandoUbicacion(true);
     setAvisoUbicacion('');
-    
-    try {
-      const resultado = await detectarMiUbicacion(geografia);
-      
-      if (resultado.exito) {
-        setSelectedProvincia(resultado.provincia);
-        setSelectedPartido(resultado.partido);
-        setSelectedLocalidad(resultado.localidad);
-        setPartidosDisponibles(calcularPartidos(resultado.provincia));
-        setLocalidadesDisponibles(calcularLocalidades(resultado.provincia, resultado.partido));
 
-        // Modo cercanía: usamos las coordenadas reales en lugar de la localidad exacta.
-        const coords = resultado.detectado && resultado.detectado.coords;
-        if (coords) {
-          const ubicacion = {
-            lat: coords.lat,
-            lon: coords.lon,
-            localidad: resultado.localidad || ''
-          };
-          setUbicacionUsuario(ubicacion);
-          setRadioKm(RADIO_DEFAULT);
-          // "Mi ubicación" dispara la búsqueda directamente.
-          setBusqueda({
-            ...filtrosActuales,
-            provincia: resultado.provincia,
-            partido: resultado.partido,
-            localidad: resultado.localidad,
-            ubicacionUsuario: ubicacion,
-            radioKm: RADIO_DEFAULT
-          });
-        }
+    try {
+      const coords = await obtenerCoordenadas();
+      const ubicacion = {
+        lat: coords.lat,
+        lon: coords.lon,
+        precision: coords.precision
+      };
+
+      setUbicacionUsuario(ubicacion);
+      setSelectedSeccional('');
+      setSeccionalOpen(false);
+      setRadioKm(RADIO_DEFAULT);
+
+      // "Mi ubicación" sólo dispara la búsqueda si ya está elegida la
+      // prestación. Si no, el usuario completa y presiona Buscar.
+      if (selectedPrestacion) {
+        setBusqueda({
+          plan: selectedPlan,
+          prestacion: selectedPrestacion,
+          detalle: selectedDetalle,
+          seccional: '',
+          ubicacionUsuario: ubicacion,
+          radioKm: RADIO_DEFAULT
+        });
       } else {
-        setAvisoUbicacion(resultado.aviso);
+        setBusqueda(null);
       }
     } catch (error) {
-      setAvisoUbicacion('Error al detectar ubicación. Intenta manualmente.');
+      setAvisoUbicacion(error.message || 'Error al detectar ubicación.');
     } finally {
       setCargandoUbicacion(false);
     }
@@ -386,9 +340,7 @@ const CartillaApp = () => {
     const handleClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setPlanOpen(false);
-        setProvinciaOpen(false);
-        setPartidoOpen(false);
-        setLocalidadOpen(false);
+        setSeccionalOpen(false);
         setPrestacionOpen(false);
         setDetalleOpen(false);
       }
@@ -397,9 +349,7 @@ const CartillaApp = () => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
         setPlanOpen(false);
-        setProvinciaOpen(false);
-        setPartidoOpen(false);
-        setLocalidadOpen(false);
+        setSeccionalOpen(false);
         setPrestacionOpen(false);
         setDetalleOpen(false);
       }
@@ -425,37 +375,50 @@ const CartillaApp = () => {
         {/* Filtros */}
         <div className="cartilla-filtros">
           <div className="cartilla-filtros-grid">
-            {/* Provincia */}
-            <div className="cartilla-campo cartilla-campo-provincia">
-              <label className="cartilla-label">Provincia</label>
+            {/* Seccional */}
+            <div className="cartilla-campo cartilla-campo-seccional">
+              <label className="cartilla-label">Seccional</label>
               <div className="cartilla-input-wrapper">
                 <input
                   type="text"
-                  placeholder="Buscar provincia..."
-                  value={provinciaOpen ? provinciaSearch : selectedProvincia}
-                  onChange={(e) => setProvinciaSearch(e.target.value)}
+                  placeholder="Buscar seccional..."
+                  value={
+                    seccionalOpen
+                      ? seccionalSearch
+                      : grupoSeleccionado
+                        ? grupoSeleccionado.etiqueta
+                        : ''
+                  }
+                  onChange={(e) => setSeccionalSearch(e.target.value)}
                   onFocus={() => {
-                    setProvinciaSearch('');
-                    setProvinciaOpen(true);
+                    setSeccionalSearch('');
+                    setSeccionalOpen(true);
                   }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
+                      setSeccionalOpen(false);
                       ejecutarBusqueda();
                     }
                   }}
-                  onBlur={() => setTimeout(() => setProvinciaOpen(false), 150)}
+                  onBlur={() => setTimeout(() => setSeccionalOpen(false), 150)}
                   className="cartilla-input"
                 />
-                {provinciaOpen && (
+                {seccionalOpen && (
                   <div className="cartilla-dropdown-menu">
-                    {filteredProvincia.map((prov) => (
+                    {filteredSeccional.length === 0 && (
+                      <div className="cartilla-dropdown-vacio">Sin resultados</div>
+                    )}
+                    {filteredSeccional.map((grupo) => (
                       <button
-                        key={prov}
-                        onClick={() => handleProvinciaSelect(prov)}
+                        key={grupo.clave}
+                        onClick={() => handleSeccionalSelect(grupo.clave)}
                         className="cartilla-dropdown-item"
                       >
-                        {prov}
+                        <span>{grupo.etiqueta}</span>
+                        <span className="cartilla-dropdown-badge">
+                          {grupo.sedes.length > 1 ? `${grupo.sedes.length} sedes` : ''}
+                        </span>
                       </button>
                     ))}
                   </div>
@@ -463,96 +426,8 @@ const CartillaApp = () => {
               </div>
             </div>
 
-            {/* Partido */}
-            {(selectedProvincia || selectedPartido) && (
-              <div className="cartilla-campo cartilla-campo-partido cartilla-campo-aparece">
-                <label className="cartilla-label">Partido</label>
-                <div className="cartilla-input-wrapper">
-                  <input
-                    type="text"
-                    placeholder="Seleccionar partido..."
-                    value={partidoOpen ? partidoSearch : selectedPartido}
-                    onChange={(e) => setPartidoSearch(e.target.value)}
-                    onFocus={() => {
-                      setPartidoSearch('');
-                      if (selectedProvincia) setPartidoOpen(true);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        ejecutarBusqueda();
-                      }
-                    }}
-                    onBlur={() => setTimeout(() => setPartidoOpen(false), 150)}
-                    disabled={!selectedProvincia}
-                    className="cartilla-input"
-                  />
-                  {partidoOpen && selectedProvincia && (
-                    <div className="cartilla-dropdown-menu">
-                      {filteredPartido.map((part) => (
-                        <button
-                          key={part}
-                          onClick={() => handlePartidoSelect(part)}
-                          className="cartilla-dropdown-item"
-                        >
-                          {part}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Localidad */}
-            {(selectedPartido || selectedLocalidad) && (
-              <div className="cartilla-campo cartilla-campo-localidad cartilla-campo-aparece">
-                <label className="cartilla-label">Localidad</label>
-                <div className="cartilla-input-wrapper">
-                  <input
-                    type="text"
-                    placeholder="Seleccionar localidad..."
-                    value={localidadOpen ? localidadSearch : selectedLocalidad}
-                    onChange={(e) => setLocalidadSearch(e.target.value)}
-                    onFocus={() => {
-                      setLocalidadSearch('');
-                      if (selectedPartido) setLocalidadOpen(true);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        ejecutarBusqueda();
-                      }
-                    }}
-                    onBlur={() => setTimeout(() => setLocalidadOpen(false), 150)}
-                    disabled={!selectedPartido}
-                    className="cartilla-input"
-                  />
-                  {localidadOpen && selectedPartido && (
-                    <div className="cartilla-dropdown-menu">
-                      {filteredLocalidad.map((loc) => (
-                        <button
-                          key={loc}
-                          onClick={() => {
-                            salirDeModoGps();
-                            setSelectedLocalidad(loc);
-                            setLocalidadOpen(false);
-                            setLocalidadSearch('');
-                            setAvisoUbicacion('');
-                          }}
-                          className="cartilla-dropdown-item"
-                        >
-                          {loc}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* Plan */}
-            {(selectedLocalidad || selectedPlan) && (
+            {(selectedSeccional || ubicacionUsuario || selectedPlan) && (
               <div className="cartilla-campo cartilla-campo-plan cartilla-campo-aparece">
                 <label className="cartilla-label">Plan</label>
                 <div className="cartilla-input-wrapper">
@@ -682,8 +557,12 @@ const CartillaApp = () => {
                     type="button"
                     onClick={() => cambiarRadio(null)}
                     disabled={!centroDraft}
-                    title={centroDraft ? 'Sin límite de distancia' : 'Elegí una localidad o usá tu ubicación'}
-                    className={`cartilla-radio-btn${radioKm == null ? ' activo' : ''}`}
+                    title={
+                      centroDraft
+                        ? 'Todos los prestadores de la seccional'
+                        : 'Elegí una seccional o usá tu ubicación'
+                    }
+                    className={`cartilla-radio-btn${centroDraft && radioKm == null ? ' activo' : ''}`}
                   >
                     Sin límite
                   </button>
@@ -694,8 +573,8 @@ const CartillaApp = () => {
                     type="button"
                     onClick={() => cambiarRadio(r)}
                     disabled={!centroDraft}
-                    title={centroDraft ? `Hasta ${r} km` : 'Elegí una localidad o usá tu ubicación'}
-                    className={`cartilla-radio-btn${r === radioKm ? ' activo' : ''}`}
+                    title={centroDraft ? `Hasta ${r} km` : 'Elegí una seccional o usá tu ubicación'}
+                    className={`cartilla-radio-btn${centroDraft && r === radioKm ? ' activo' : ''}`}
                   >
                     {r} km
                   </button>
@@ -705,30 +584,67 @@ const CartillaApp = () => {
           </div>
 
           <div className="cartilla-filtros-footer">
-            {ubicacionCompleta && (
-              <div className="cartilla-seccional-chip">
-                {seccionalEncontrada ? (
-                  <>
-                    <span className="cartilla-seccional-etiqueta">Seccional</span>
-                    <strong>{seccionalEncontrada['NOMBRE SECCIONAL'] || 'Sin nombre'}</strong>
-                    <span>
-                      {[
-                        seccionalEncontrada.LOCALIDAD,
-                        seccionalEncontrada.SECCIONAL,
-                        seccionalEncontrada.TELEFONO
-                      ]
-                        .filter(Boolean)
-                        .join(' · ')}
-                    </span>
-                    {seccionalEncontrada.DIRECCION && (
-                      <span className="cartilla-seccional-dir">{seccionalEncontrada.DIRECCION}</span>
-                    )}
-                  </>
-                ) : (
-                  <span className="cartilla-seccional-etiqueta">⚠ Seccional no encontrada</span>
+            {ubicacionUsuario ? (
+              <div className="cartilla-seccional-info">
+                <div className="cartilla-seccional-chip">
+                  <span className="cartilla-seccional-etiqueta">Búsqueda</span>
+                  <strong>📍 Tu ubicación</strong>
+                  {Number.isFinite(ubicacionUsuario.precision) && (
+                    <span>±{Math.round(ubicacionUsuario.precision)} m</span>
+                  )}
+                </div>
+              </div>
+            ) : grupoSeleccionado ? (
+              <div className="cartilla-seccional-info">
+                <div className="cartilla-seccional-chip">
+                  <span className="cartilla-seccional-etiqueta">Seccional</span>
+                  <strong>{grupoSeleccionado.etiqueta}</strong>
+
+                  {grupoSeleccionado.sedes.length === 1 && (
+                    <>
+                      <span>{grupoSeleccionado.sedes[0]['NOMBRE SECCIONAL']}</span>
+                      <span>
+                        {[grupoSeleccionado.sedes[0].LOCALIDAD, grupoSeleccionado.sedes[0].TELEFONO]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                      {grupoSeleccionado.sedes[0].DIRECCION && (
+                        <span className="cartilla-seccional-dir">
+                          {grupoSeleccionado.sedes[0].DIRECCION}
+                        </span>
+                      )}
+                    </>
+                  )}
+
+                  {grupoSeleccionado.sedes.length > 1 && (
+                    <button
+                      type="button"
+                      className="cartilla-btn-sedes"
+                      onClick={() => setSedesAbiertas((abierto) => !abierto)}
+                      aria-expanded={sedesAbiertas}
+                      title={sedesAbiertas ? 'Ocultar sedes' : 'Ver direcciones y teléfonos'}
+                    >
+                      {grupoSeleccionado.sedes.length} sedes {sedesAbiertas ? '▲' : '▼'}
+                    </button>
+                  )}
+                </div>
+
+                {sedesAbiertas && grupoSeleccionado.sedes.length > 1 && (
+                  <div className="cartilla-sedes-lista">
+                    {grupoSeleccionado.sedes.map((sede) => (
+                      <div key={sede.SECCIONAL} className="cartilla-sede-item">
+                        <div className="cartilla-sede-titulo">
+                          {sede['NOMBRE SECCIONAL'] || sede.SECCIONAL}
+                          {sede.LOCALIDAD ? <span> · {sede.LOCALIDAD}</span> : null}
+                        </div>
+                        {sede.DIRECCION && <div>📍 {sede.DIRECCION}</div>}
+                        {sede.TELEFONO && <div>📞 {sede.TELEFONO}</div>}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
-            )}
+            ) : null}
 
             <button onClick={handleClearFilters} className="cartilla-btn-limpiar">
               🗑️ Limpiar filtros
@@ -736,16 +652,20 @@ const CartillaApp = () => {
 
             <button
               onClick={ejecutarBusqueda}
-              disabled={!hayFiltros}
+              disabled={!busquedaLista}
               className="cartilla-btn-buscar"
-              title={hayFiltros ? 'Buscar prestadores' : 'Elegí al menos un filtro'}
+              title={
+                busquedaLista
+                  ? 'Buscar prestadores'
+                  : 'Elegí ubicación, plan, prestación y detalle'
+              }
             >
               🔍 Buscar
             </button>
           </div>
         </div>
 
-        {avisoUbicacion && !selectedLocalidad && (
+        {avisoUbicacion && (
           <div className="cartilla-aviso-ubicacion">⚠️ {avisoUbicacion}</div>
         )}
 
@@ -755,15 +675,25 @@ const CartillaApp = () => {
           </div>
         )}
 
-        {!busqueda && hayFiltros && (
+        {!busqueda && busquedaLista && (
           <div className="cartilla-hint-buscar">
             Filtros listos. Presioná <strong>🔍 Buscar</strong> para ver los prestadores.
           </div>
         )}
 
-        {!busqueda && !hayFiltros && (
+        {!busqueda && !busquedaLista && (
           <div className="cartilla-hint-buscar">
-            Empezá eligiendo una <strong>provincia</strong> o usá <strong>📍 Mi ubicación</strong>.
+            {hayUbicacion ? (
+              <>
+                Completá <strong>plan</strong> y <strong>prestación</strong> para poder
+                buscar. El detalle es opcional.
+              </>
+            ) : (
+              <>
+                Empezá eligiendo una <strong>seccional</strong> o usá{' '}
+                <strong>📍 Mi ubicación</strong>.
+              </>
+            )}
           </div>
         )}
 
@@ -803,9 +733,7 @@ const CartillaApp = () => {
                 )}
 
                 {resultados.length === 0 ? (
-                  <p className="cartilla-aviso">
-                    No se encontraron prestadores para los filtros seleccionados.
-                  </p>
+                  <p className="cartilla-aviso">{mensajeVacio}</p>
                 ) : (
                   <>
                     <div className="cartilla-tabla-wrapper">
@@ -864,7 +792,7 @@ const CartillaApp = () => {
         {mapaAbierto && (
           <MapaPrestadores
             prestadores={resultados}
-            centro={centroMapa}
+            centros={centrosMapa}
             radioKm={radioAplicado}
             onClose={() => setMapaAbierto(false)}
           />

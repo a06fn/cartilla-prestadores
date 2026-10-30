@@ -6,7 +6,9 @@ export const seccionales = [
     "LOCALIDAD": "Almagro",
     "SECCIONAL": "CAPITAL",
     "DIRECCION": "Quintino Bocayuva 50",
-    "TELEFONO": "0800-288-8872"
+    "TELEFONO": "0800-288-8872",
+    "lat": -34.613092,
+    "lon": -58.423384
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - San Isidro",
@@ -15,7 +17,9 @@ export const seccionales = [
     "LOCALIDAD": "San Isidro",
     "SECCIONAL": "GBA NORTE",
     "DIRECCION": "Fleming 970",
-    "TELEFONO": "TEL 5555-3461;WSP 11-3321-8669"
+    "TELEFONO": "TEL 5555-3461;WSP 11-3321-8669",
+    "lat": -34.485253,
+    "lon": -58.526455
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Quilmes",
@@ -24,7 +28,9 @@ export const seccionales = [
     "LOCALIDAD": "Quilmes",
     "SECCIONAL": "GBA SUR",
     "DIRECCION": "Vicente López 87",
-    "TELEFONO": "4252-3856"
+    "TELEFONO": "4252-3856",
+    "lat": -34.716038,
+    "lon": -58.271501
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - La Plata",
@@ -33,7 +39,9 @@ export const seccionales = [
     "LOCALIDAD": "La Plata",
     "SECCIONAL": "LA PLATA",
     "DIRECCION": "Calle 39 789",
-    "TELEFONO": "0221 4222600;0221 4252618"
+    "TELEFONO": "0221 4222600;0221 4252618",
+    "lat": -34.909922,
+    "lon": -57.964789
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Mercedes",
@@ -42,7 +50,9 @@ export const seccionales = [
     "LOCALIDAD": "Mercedes",
     "SECCIONAL": "BUENOS AIRES ZONA 1",
     "DIRECCION": "Calle 23 número 531",
-    "TELEFONO": "02324 424101;02324 430514;02324 430514"
+    "TELEFONO": "02324 424101;02324 430514;02324 430514",
+    "lat": -34.650733,
+    "lon": -59.431387
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Las Flores",
@@ -51,7 +61,9 @@ export const seccionales = [
     "LOCALIDAD": "Las Flores",
     "SECCIONAL": "BUENOS AIRES ZONA 2",
     "DIRECCION": "Belgrano 734",
-    "TELEFONO": "02244 453121;0224 4 443121"
+    "TELEFONO": "02244 453121;0224 4 443121",
+    "lat": -36.014546,
+    "lon": -59.093541
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Junin",
@@ -60,7 +72,9 @@ export const seccionales = [
     "LOCALIDAD": "Junin",
     "SECCIONAL": "BUENOS AIRES ZONA 3",
     "DIRECCION": "Ameghino 35",
-    "TELEFONO": "02362 421721"
+    "TELEFONO": "02362 421721",
+    "lat": -34.594812,
+    "lon": -60.951458
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Mar del Plata",
@@ -69,7 +83,9 @@ export const seccionales = [
     "LOCALIDAD": "Mar Del Plata",
     "SECCIONAL": "MAR DEL PLATA",
     "DIRECCION": "Olazabal 1357",
-    "TELEFONO": "0223 4723216;0223 4751186;0223 4750905"
+    "TELEFONO": "0223 4723216;0223 4751186;0223 4750905",
+    "lat": -37.98887,
+    "lon": -57.559845
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Bahía Blanca",
@@ -78,7 +94,9 @@ export const seccionales = [
     "LOCALIDAD": "Bahia Blanca",
     "SECCIONAL": "BAHIA BLANCA",
     "DIRECCION": "Sarmiento 799",
-    "TELEFONO": "0291 4532772;549 291 4127875"
+    "TELEFONO": "0291 4532772;549 291 4127875",
+    "lat": -38.709919,
+    "lon": -62.257892
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Trenque Lauquen",
@@ -87,7 +105,9 @@ export const seccionales = [
     "LOCALIDAD": "Trenque Lauquen",
     "SECCIONAL": "TRENQUE LAUQUEN",
     "DIRECCION": "25 de Mayo 244",
-    "TELEFONO": "02392-425333;02392-415333"
+    "TELEFONO": "02392-425333;02392-415333",
+    "lat": -35.971062,
+    "lon": -62.737578
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - General Pico",
@@ -96,7 +116,9 @@ export const seccionales = [
     "LOCALIDAD": "General Pico",
     "SECCIONAL": "LA PAMPA GENERAL PICO",
     "DIRECCION": "Calle 5 Nº 142 e/4 y 6",
-    "TELEFONO": "02302-4304 01"
+    "TELEFONO": "02302-4304 01",
+    "lat": -35.6593,
+    "lon": -63.757872
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Santa Rosa",
@@ -105,7 +127,9 @@ export const seccionales = [
     "LOCALIDAD": "Santa Rosa",
     "SECCIONAL": "LA PAMPA SANTA ROSA",
     "DIRECCION": "Garibaldi 104",
-    "TELEFONO": "02954-434123"
+    "TELEFONO": "02954-434123",
+    "lat": -36.623202,
+    "lon": -64.284709
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Río Negro",
@@ -114,7 +138,9 @@ export const seccionales = [
     "LOCALIDAD": "General Roca",
     "SECCIONAL": "RIO NEGRO",
     "DIRECCION": "25 de Mayo 562",
-    "TELEFONO": "0298-4432812"
+    "TELEFONO": "0298-4432812",
+    "lat": -39.029997,
+    "lon": -67.57524
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Neuquén",
@@ -123,7 +149,9 @@ export const seccionales = [
     "LOCALIDAD": "Neuquen",
     "SECCIONAL": "NEUQUEN",
     "DIRECCION": "Pehuén Pasaje del Sol 890",
-    "TELEFONO": "0299-4 428530"
+    "TELEFONO": "0299-4 428530",
+    "lat": -38.951829,
+    "lon": -68.059181
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Esquel",
@@ -132,7 +160,9 @@ export const seccionales = [
     "LOCALIDAD": "Esquel",
     "SECCIONAL": "CHUBUT ESQUEL",
     "DIRECCION": "Perito Moreno 766 Dto. 4",
-    "TELEFONO": "02945-455871"
+    "TELEFONO": "02945-455871",
+    "lat": -42.917321,
+    "lon": -71.321573
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Pto. Madryn",
@@ -141,7 +171,9 @@ export const seccionales = [
     "LOCALIDAD": "Puerto Madryn",
     "SECCIONAL": "CHUBUT PUERTO MADRYN",
     "DIRECCION": "Mitre 150",
-    "TELEFONO": "0280-4474855"
+    "TELEFONO": "0280-4474855",
+    "lat": -42.76603,
+    "lon": -65.036464
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Trelew",
@@ -150,7 +182,9 @@ export const seccionales = [
     "LOCALIDAD": "Trelew",
     "SECCIONAL": "CHUBUT TRELEW",
     "DIRECCION": "Joseph Jones 184",
-    "TELEFONO": "0280-4422438"
+    "TELEFONO": "0280-4422438",
+    "lat": -43.25875,
+    "lon": -65.294111
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Comodoro Rivadavia",
@@ -159,7 +193,9 @@ export const seccionales = [
     "LOCALIDAD": "Comodoro Rivadavia",
     "SECCIONAL": "CHUBUT COMODORO RIVADAVIA",
     "DIRECCION": "Ramon Huenchucheo 253 P Palazzo",
-    "TELEFONO": "0297-4063426; 297 405-8722"
+    "TELEFONO": "0297-4063426; 297 405-8722",
+    "lat": -45.797891,
+    "lon": -67.451806
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Santa Cruz",
@@ -168,7 +204,9 @@ export const seccionales = [
     "LOCALIDAD": "Rio Gallegos",
     "SECCIONAL": "SANTA CRUZ RIO GALLEGOS",
     "DIRECCION": "Pje. Zucarino 541",
-    "TELEFONO": "02966-423282;02966-439846"
+    "TELEFONO": "02966-423282;02966-439846",
+    "lat": -51.623463,
+    "lon": -69.215865
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Río Grande",
@@ -177,7 +215,9 @@ export const seccionales = [
     "LOCALIDAD": "Rio Grande",
     "SECCIONAL": "TIERRA DEL FUEGO RIO GRANDE",
     "DIRECCION": "Piedrabuena 976",
-    "TELEFONO": "02964-426761"
+    "TELEFONO": "02964-426761",
+    "lat": -53.787392,
+    "lon": -67.706998
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Ushuaia",
@@ -186,7 +226,9 @@ export const seccionales = [
     "LOCALIDAD": "Ushuaia",
     "SECCIONAL": "TIERRA DEL FUEGO USHUAIA",
     "DIRECCION": "Malvinas Argentinas 20",
-    "TELEFONO": "02901-42 3280"
+    "TELEFONO": "02901-42 3280",
+    "lat": -54.830375,
+    "lon": -68.341276
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Rosario",
@@ -195,7 +237,9 @@ export const seccionales = [
     "LOCALIDAD": "Rosario",
     "SECCIONAL": "SANTA FE ROSARIO",
     "DIRECCION": "Av. Francia 1231",
-    "TELEFONO": "0341-4373272;0341-4301158;0341-4371331"
+    "TELEFONO": "0341-4373272;0341-4301158;0341-4371331",
+    "lat": -32.947122,
+    "lon": -60.66675
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Santa Fe",
@@ -204,7 +248,9 @@ export const seccionales = [
     "LOCALIDAD": "Santa Fe",
     "SECCIONAL": "SANTA FE",
     "DIRECCION": "Mitre 3340",
-    "TELEFONO": "0342-4553149;0342-4566147"
+    "TELEFONO": "0342-4553149;0342-4566147",
+    "lat": -31.657475,
+    "lon": -60.710478
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Entre Ríos",
@@ -213,7 +259,9 @@ export const seccionales = [
     "LOCALIDAD": "Parana",
     "SECCIONAL": "ENTRE RIOS",
     "DIRECCION": "Av. Francisco Ramírez 2834",
-    "TELEFONO": "0343-4311671;0343-4233460"
+    "TELEFONO": "0343-4311671;0343-4233460",
+    "lat": -31.745782,
+    "lon": -60.518822
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Córdoba",
@@ -222,7 +270,9 @@ export const seccionales = [
     "LOCALIDAD": "Cordoba",
     "SECCIONAL": "CORDOBA",
     "DIRECCION": "Laprida 131 Barrio Nva. Córdoba",
-    "TELEFONO": "0351-4223338;0351-4220163"
+    "TELEFONO": "0351-4223338;0351-4220163",
+    "lat": -31.416804,
+    "lon": -64.183607
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Río Cuarto",
@@ -231,7 +281,9 @@ export const seccionales = [
     "LOCALIDAD": "Rio Cuarto",
     "SECCIONAL": "CORDOBA RIO CUARTO",
     "DIRECCION": "Pcia. De La Rioja 986",
-    "TELEFONO": "0358-4642581"
+    "TELEFONO": "0358-4642581",
+    "lat": -33.123837,
+    "lon": -64.349003
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - San Luis",
@@ -240,7 +292,9 @@ export const seccionales = [
     "LOCALIDAD": "San Luis",
     "SECCIONAL": "SAN LUIS",
     "DIRECCION": "Maipú 666",
-    "TELEFONO": "0266-4427911"
+    "TELEFONO": "0266-4427911",
+    "lat": -33.302471,
+    "lon": -66.331907
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Mendoza",
@@ -249,7 +303,9 @@ export const seccionales = [
     "LOCALIDAD": "2a Seccion",
     "SECCIONAL": "MENDOZA",
     "DIRECCION": "Gutierrez 543",
-    "TELEFONO": "0261-4233155;0261-4258418"
+    "TELEFONO": "0261-4233155;0261-4258418",
+    "lat": -32.887133,
+    "lon": -68.845763
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - San Juan",
@@ -258,7 +314,9 @@ export const seccionales = [
     "LOCALIDAD": "San Juan",
     "SECCIONAL": "SAN JUAN",
     "DIRECCION": "Caseros Sur 672",
-    "TELEFONO": "0264-4201310"
+    "TELEFONO": "0264-4201310",
+    "lat": -31.537259,
+    "lon": -68.525017
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - La Rioja",
@@ -267,7 +325,9 @@ export const seccionales = [
     "LOCALIDAD": "La Rioja Capital",
     "SECCIONAL": "LA RIOJA",
     "DIRECCION": "Ramírez de Velazco 1016",
-    "TELEFONO": "0380-4425014;0380-4435482"
+    "TELEFONO": "0380-4425014;0380-4435482",
+    "lat": -29.43116,
+    "lon": -66.855413
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Catamarca",
@@ -276,7 +336,9 @@ export const seccionales = [
     "LOCALIDAD": "San Fernando del Valle de Catamarca",
     "SECCIONAL": "CATAMARCA",
     "DIRECCION": "Fidel Mardoqueo Castro 543 (Sarmiento Norte)",
-    "TELEFONO": "0383-4557352;0383-4431232"
+    "TELEFONO": "0383-4557352;0383-4431232",
+    "lat": -28.469013,
+    "lon": -65.778917
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Santiago del Estero",
@@ -285,7 +347,9 @@ export const seccionales = [
     "LOCALIDAD": "Santiago Del Estero",
     "SECCIONAL": "SANTIAGO DEL ESTERO",
     "DIRECCION": "Entre Ríos 416",
-    "TELEFONO": "0385-4215378;0385-4256516"
+    "TELEFONO": "0385-4215378;0385-4256516",
+    "lat": -27.792678,
+    "lon": -64.258942
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Corrientes",
@@ -294,7 +358,9 @@ export const seccionales = [
     "LOCALIDAD": "Corrientes",
     "SECCIONAL": "CORRIENTES",
     "DIRECCION": "Necochea 3058",
-    "TELEFONO": "0379-4429113"
+    "TELEFONO": "0379-4429113",
+    "lat": -27.482164,
+    "lon": -58.814587
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Chaco",
@@ -303,7 +369,9 @@ export const seccionales = [
     "LOCALIDAD": "Resistencia",
     "SECCIONAL": "CHACO",
     "DIRECCION": "Av. Rivadavia 1230",
-    "TELEFONO": "0362-4438310"
+    "TELEFONO": "0362-4438310",
+    "lat": -27.43727,
+    "lon": -58.993169
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Misiones",
@@ -312,7 +380,9 @@ export const seccionales = [
     "LOCALIDAD": "Posadas",
     "SECCIONAL": "MISIONES",
     "DIRECCION": "Rebollo 2265 33",
-    "TELEFONO": "0376-4434186;0376-4433831"
+    "TELEFONO": "0376-4434186;0376-4433831",
+    "lat": -27.377621,
+    "lon": -55.888657
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Tucumán",
@@ -321,7 +391,9 @@ export const seccionales = [
     "LOCALIDAD": "San Miguel de Tucuman",
     "SECCIONAL": "TUCUMAN",
     "DIRECCION": "Santa Fe 1270",
-    "TELEFONO": "0381-4334166;0381-4334168"
+    "TELEFONO": "0381-4334166;0381-4334168",
+    "lat": -26.817862,
+    "lon": -65.213741
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Formosa",
@@ -330,7 +402,9 @@ export const seccionales = [
     "LOCALIDAD": "Formosa",
     "SECCIONAL": "FORMOSA",
     "DIRECCION": "Carlos Castañeda 75",
-    "TELEFONO": "0370-4430837"
+    "TELEFONO": "0370-4430837",
+    "lat": -26.174876,
+    "lon": -58.174479
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Salta",
@@ -339,7 +413,9 @@ export const seccionales = [
     "LOCALIDAD": "Salta",
     "SECCIONAL": "SALTA",
     "DIRECCION": "Alberdi 524",
-    "TELEFONO": "0387-4219544;0387-154142389;0387-154489982"
+    "TELEFONO": "0387-4219544;0387-154142389;0387-154489982",
+    "lat": -24.796444,
+    "lon": -65.411677
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Jujuy",
@@ -348,7 +424,9 @@ export const seccionales = [
     "LOCALIDAD": "San Salvador de Jujuy",
     "SECCIONAL": "JUJUY",
     "DIRECCION": "Curupayti 375",
-    "TELEFONO": "0388-4228008;0388-4224667"
+    "TELEFONO": "0388-4228008;0388-4224667",
+    "lat": -24.185829,
+    "lon": -65.299483
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - San Justo",
@@ -357,7 +435,9 @@ export const seccionales = [
     "LOCALIDAD": "San Justo",
     "SECCIONAL": "GBA OESTE",
     "DIRECCION": "Presidente Juan Domingo Peron 3129",
-    "TELEFONO": "4441-0092;4441-0098"
+    "TELEFONO": "4441-0092;4441-0098",
+    "lat": -34.675955,
+    "lon": -58.557492
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Caleta Olivia",
@@ -366,7 +446,9 @@ export const seccionales = [
     "LOCALIDAD": "Caleta Olivia",
     "SECCIONAL": "SANTA CRUZ CALETA OLIVIA",
     "DIRECCION": "Independencia 1171 barrio Unión",
-    "TELEFONO": "WSP 2976 07-7276"
+    "TELEFONO": "WSP 2976 07-7276",
+    "lat": -46.447847,
+    "lon": -67.522741
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Concordia",
@@ -375,7 +457,9 @@ export const seccionales = [
     "LOCALIDAD": "Concordia",
     "SECCIONAL": "ENTRE RIOS CONCORDIA",
     "DIRECCION": "CONCEJAL VEIGA 638",
-    "TELEFONO": "3454018973 "
+    "TELEFONO": "3454018973 ",
+    "lat": -31.395447,
+    "lon": -58.027981
   },
   {
     "NOMBRE SECCIONAL": "TVSALUD - Gualeguaychú",
@@ -384,6 +468,8 @@ export const seccionales = [
     "LOCALIDAD": "Gualeguaychu",
     "SECCIONAL": "ENTRE RIOS GUALEGUAYCHU",
     "DIRECCION": "ANDRADE 1058",
-    "TELEFONO": ""
+    "TELEFONO": "",
+    "lat": -33.011827,
+    "lon": -58.519691
   }
-]
+];

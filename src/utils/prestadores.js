@@ -75,6 +75,8 @@ export function prepararPrestador(p) {
     _plan: norm(p.Plan),
     _prestacion: (p.Prestacion || '').trim(),
     _especialidad: norm(p.Especialidad),
+    _clasificacion: norm(p['Clasificacion prestador']),
+    _seccional: norm(p.Seccional),
     _provincia: norm(p.Provincia),
     _partido: norm(p.Partido),
     _localidad: norm(p.Localidad),
@@ -96,7 +98,7 @@ export function planesIncluidos(plan) {
 }
 
 export function filtrarPrestadores(filas, filtros) {
-  const { plan, provincia, partido, localidad, prestacion, detalle } = filtros;
+  const { plan, prestacion, detalle } = filtros;
 
   return filas.filter((p) => {
     // Un plan superior incluye la cobertura de los inferiores.
@@ -105,15 +107,27 @@ export function filtrarPrestadores(filas, filtros) {
       if (!permitidos.includes(p._plan)) return false;
     }
 
+    // Reglas administrativas: las clínicas y sanatorios no se ofrecen para
+    // ciertas prestaciones (son mucho más caras y el afiliado debe ir derivado,
+    // no por su cuenta):
+    //   - ESPECIALIDADES
+    //   - DIAGNOSTICO X IMAGENES
+    // Sus otras prestaciones (internación, guardia, etc.) siguen visibles.
+    if (p._clasificacion === 'clinicas y sanatorios') {
+      if (p._prestacion === 'ESPECIALIDADES') return false;
+      if (
+        p._prestacion === 'DIAGNOSTICO Y TRATAMIENTO' &&
+        p._especialidad === 'diagnostico x imagenes'
+      ) {
+        return false;
+      }
+    }
+
     // "GUARDIA" es una prestación más: se filtra igual que el resto.
     if (prestacion) {
       if (p._prestacion !== prestacion) return false;
       if (detalle && p._especialidad !== norm(detalle)) return false;
     }
-
-    if (provincia && p._provincia !== norm(provincia)) return false;
-    if (partido && p._partido !== norm(partido)) return false;
-    if (localidad && p._localidad !== norm(localidad)) return false;
 
     return true;
   });
@@ -178,25 +192,42 @@ export function distanciaKm(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Prestadores dentro de un radio (km) de `centro`.
- * Los prestadores sin coordenadas sólo se incluyen si son de la misma localidad
- * que el usuario (quedan con distancia null y se muestran como "s/d").
+ * Prestadores de una seccional (coincidencia exacta con el nombre del CSV).
+ * Se usa para el modo "Sin límite": todos los de la seccional, sin importar la distancia.
  */
-export function filtrarPorRadio(filas, { lat, lon, radioKm, localidad }) {
-  const loc = norm(localidad);
+export function filtrarPorSeccional(filas, nombres) {
+  const permitidos = new Set(nombres || []);
+  return filas
+    .filter((p) => permitidos.has(p._seccional))
+    .map((p) => ({ ...p, _distancia: null }));
+}
+
+/**
+ * Prestadores a menos de `radioKm` de alguno de `puntos` (sedes de la seccional
+ * o la ubicación del usuario). Se guarda la distancia a la más cercana.
+ *
+ * Los prestadores sin coordenadas quedan afuera: en modo distancia no se puede
+ * asegurar que estén dentro del radio.
+ */
+export function filtrarPorDistancia(filas, puntos, radioKm) {
+  const centros = (puntos || []).filter(
+    (p) => Number.isFinite(p.lat) && Number.isFinite(p.lon)
+  );
+  if (!centros.length || radioKm == null) return filas;
+
   const resultado = [];
 
   filas.forEach((p) => {
     const pLat = parseFloat(p.lat);
     const pLon = parseFloat(p.lon);
-    const tieneCoords = Number.isFinite(pLat) && Number.isFinite(pLon);
+    if (!Number.isFinite(pLat) || !Number.isFinite(pLon)) return;
 
-    if (!tieneCoords) {
-      if (loc && p._localidad === loc) resultado.push({ ...p, _distancia: null });
-      return;
+    let distancia = Infinity;
+    for (const centro of centros) {
+      const d = distanciaKm(centro.lat, centro.lon, pLat, pLon);
+      if (d < distancia) distancia = d;
     }
 
-    const distancia = distanciaKm(lat, lon, pLat, pLon);
     if (distancia <= radioKm) resultado.push({ ...p, _distancia: distancia });
   });
 
